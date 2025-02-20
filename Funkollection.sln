@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34511.84
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Funkollection", "Funkollection.csproj", "{43BB8593-2EF3-4E3C-B359-F94580D40774}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{43BB8593-2EF3-4E3C-B359-F94580D40774}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43BB8593-2EF3-4E3C-B359-F94580D40774}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43BB8593-2EF3-4E3C-B359-F94580D40774}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43BB8593-2EF3-4E3C-B359-F94580D40774}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FB0B3547-DB93-4AB4-8016-5171B3F580A8}
+	EndGlobalSection
+EndGlobal
