@@ -2,7 +2,7 @@
 {
     public class UserFunkoPop
     {
-        // Foreign key to User (IdentityUser)
+        // Foreign key to User (ApplicationUser)
         public string UserId { get; set; }
         public ApplicationUser User { get; set; }
 
