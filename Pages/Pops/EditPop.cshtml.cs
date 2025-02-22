@@ -1,22 +1,23 @@
-using Funkollection.Models;
 using Funkollection.Data;
+using Funkollection.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace Funkollection.Pages.Pops
 {
     public class EditPopModel : PageModel
     {
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public EditPopModel(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
+        public EditPopModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
-            _userManager = userManager;
             _context = context;
+            _userManager = userManager;
         }
 
         [BindProperty]
@@ -27,41 +28,49 @@ namespace Funkollection.Pages.Pops
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return RedirectToPage("/Account/Login");
+                return Unauthorized();
             }
 
-            // Fetch the FunkoPop to be edited
-            FunkoPop = await _context.FunkoPops
-                .Where(f => f.Id == id)
-                .Include(f => f.Stickers)
-                .FirstOrDefaultAsync();
+            // Ensure the user owns this FunkoPop
+            var userFunko = await _context.UserFunkoPops
+                .Include(ufp => ufp.FunkoPop)
+                .FirstOrDefaultAsync(ufp => ufp.FunkoPopId == id && ufp.UserId == user.Id);
 
-            if (FunkoPop == null || !await _context.UserFunkoPops.AnyAsync(u => u.UserId == user.Id && u.FunkoPopId == id))
+            if (userFunko == null)
             {
-                return RedirectToPage("/Pops/MyCollection"); // Redirect if the FunkoPop doesn't exist or isn't the user's
+                return NotFound();
             }
 
+            FunkoPop = userFunko.FunkoPop;
             return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            if (!ModelState.IsValid)
             {
-                return RedirectToPage("/Account/Login");
+                return Page();
             }
 
-            if (ModelState.IsValid)
+            _context.Attach(FunkoPop).State = EntityState.Modified;
+
+            try
             {
-                // Update the FunkoPop
-                _context.Attach(FunkoPop).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
-
-                return RedirectToPage("/Pops/MyCollection");
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.FunkoPops.Any(e => e.Id == FunkoPop.Id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
             }
 
-            return Page();
+            return RedirectToPage("/Pops/MyCollection");
         }
     }
 }

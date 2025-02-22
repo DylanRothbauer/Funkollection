@@ -1,8 +1,8 @@
-using Funkollection.Models;
 using Funkollection.Data;
+using Funkollection.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Identity;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -11,13 +11,13 @@ namespace Funkollection.Pages.Pops
 {
     public class DeletePopModel : PageModel
     {
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public DeletePopModel(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
+        public DeletePopModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
-            _userManager = userManager;
             _context = context;
+            _userManager = userManager;
         }
 
         [BindProperty]
@@ -28,19 +28,19 @@ namespace Funkollection.Pages.Pops
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return RedirectToPage("/Account/Login");
+                return Unauthorized();
             }
 
-            // Fetch the FunkoPop to delete
-            FunkoPop = await _context.FunkoPops
-                .Where(f => f.Id == id)
-                .FirstOrDefaultAsync();
+            var userFunko = await _context.UserFunkoPops
+                .Include(ufp => ufp.FunkoPop)
+                .FirstOrDefaultAsync(ufp => ufp.FunkoPopId == id && ufp.UserId == user.Id);
 
-            if (FunkoPop == null || !await _context.UserFunkoPops.AnyAsync(u => u.UserId == user.Id && u.FunkoPopId == id))
+            if (userFunko == null)
             {
-                return RedirectToPage("/Pops/MyCollection"); // Redirect if the FunkoPop doesn't exist or isn't the user's
+                return NotFound();
             }
 
+            FunkoPop = userFunko.FunkoPop;
             return Page();
         }
 
@@ -49,18 +49,20 @@ namespace Funkollection.Pages.Pops
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return RedirectToPage("/Account/Login");
+                return Unauthorized();
             }
 
-            var userFunkoPop = await _context.UserFunkoPops
-                .Where(u => u.UserId == user.Id && u.FunkoPopId == id)
-                .FirstOrDefaultAsync();
+            var userFunko = await _context.UserFunkoPops
+                .FirstOrDefaultAsync(ufp => ufp.FunkoPopId == id && ufp.UserId == user.Id);
 
-            if (userFunkoPop != null)
+            if (userFunko == null)
             {
-                _context.UserFunkoPops.Remove(userFunkoPop);
-                await _context.SaveChangesAsync();
+                return NotFound();
             }
+
+            // Remove the association (not the FunkoPop itself)
+            _context.UserFunkoPops.Remove(userFunko);
+            await _context.SaveChangesAsync();
 
             return RedirectToPage("/Pops/MyCollection");
         }

@@ -1,15 +1,21 @@
 ﻿@page
+@using Funkollection.Models
 @model Funkollection.Pages.CollectionModel
 @{
     ViewData["Title"] = "My Collection";
 }
 
-<h1>My Funko Collection</h1>
+<h1 class="mb-4">My Funko Collection</h1>
+
+<!-- Add New FunkoPop Button -->
+<div class="mb-3">
+    <a asp-page="/Pops/CreatePop" class="btn btn-primary">Add Funko Pop</a>
+</div>
 
 @if (Model.FunkoPops != null && Model.FunkoPops.Count > 0)
 {
-    <table class="table">
-        <thead>
+    <table class="table table-striped table-bordered">
+        <thead class="table-dark">
             <tr>
                 <th>Name</th>
                 <th>Series</th>
@@ -28,12 +34,17 @@
                     <td>
                         @if (!string.IsNullOrEmpty(funko.ImageUrl))
                         {
-                            <img src="@funko.ImageUrl" alt="Funko Image" style="width: 50px; height: 50px;"/>
+                            <img src="@funko.ImageUrl" alt="Funko Image" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <span>No Image</span>
                         }
                     </td>
                     <td>
-                        <a href="/EditPop?Id=@funko.Id" class="btn btn-warning btn-sm">Edit</a>
-                        <form method="post" asp-page="/DeletePop" asp-route-id="@funko.Id" style="display:inline;">
+                        <a asp-page="/Pops/EditPop" asp-route-id="@funko.Id" class="btn btn-warning btn-sm">Edit</a>
+
+                        <form method="post" asp-page="/Pops/DeletePop" asp-route-id="@funko.Id" onsubmit="return confirm('Are you sure you want to delete this Funko Pop?');" style="display:inline;">
                             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                         </form>
                     </td>
@@ -44,6 +55,7 @@
 }
 else
 {
-    <p>You don't have any Funkos in your collection yet. Add some!</p>
+    <div class="alert alert-info" role="alert">
+        <p>You don't have any Funkos in your collection yet. Start adding some!</p>
+    </div>
 }
-
