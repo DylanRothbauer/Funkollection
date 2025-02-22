@@ -31,10 +31,35 @@
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar for logged-in users -->
+            @if (User.Identity.IsAuthenticated)
+            {
+                <div class="col-md-3">
+                    <div class="list-group">
+                        <a href="@Url.Page("/Index")" class="list-group-item list-group-item-action">Home</a>
+                        <a href="@Url.Page("/Pops/Collection")" class="list-group-item list-group-item-action">My Collection</a>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <!-- Main content will go here -->
+                    <main role="main" class="pb-3">
+                        @RenderBody()
+                    </main>
+                </div>
+            }
+            else
+            {
+                <!-- Main content for non-authenticated users -->
+                <div class="col-md-12">
+                    <main role="main" class="pb-3">
+                        @RenderBody()
+                    </main>
+                </div>
+            }
+        </div>
     </div>
 
     <footer class="border-top footer text-muted">

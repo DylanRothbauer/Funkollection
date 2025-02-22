@@ -1,0 +1,30 @@
+﻿@page
+@model Funkollection.Pages.Pops.EditPopModel
+@{
+}
+
+<h1>Edit Funko Pop</h1>
+
+<form method="post">
+    <div class="form-group">
+        <label for="Name">Pop Name</label>
+        <input type="text" class="form-control" id="Name" name="Name" value="@Model.FunkoPop.Name" required />
+    </div>
+
+    <div class="form-group">
+        <label for="Series">Series</label>
+        <input type="text" class="form-control" id="Series" name="Series" value="@Model.FunkoPop.Series" />
+    </div>
+
+    <div class="form-group">
+        <label for="Title">Title</label>
+        <input type="text" class="form-control" id="Title" name="Title" value="@Model.FunkoPop.Title" required />
+    </div>
+
+    <div class="form-group">
+        <label for="ImageUrl">Image URL</label>
+        <input type="text" class="form-control" id="ImageUrl" name="ImageUrl" value="@Model.FunkoPop.ImageUrl" />
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
+</form>

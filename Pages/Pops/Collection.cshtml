@@ -1,0 +1,49 @@
+﻿@page
+@model Funkollection.Pages.CollectionModel
+@{
+    ViewData["Title"] = "My Collection";
+}
+
+<h1>My Funko Collection</h1>
+
+@if (Model.FunkoPops != null && Model.FunkoPops.Count > 0)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Series</th>
+                <th>Title</th>
+                <th>Image</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var funko in Model.FunkoPops)
+            {
+                <tr>
+                    <td>@funko.Name</td>
+                    <td>@funko.Series</td>
+                    <td>@funko.Title</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(funko.ImageUrl))
+                        {
+                            <img src="@funko.ImageUrl" alt="Funko Image" style="width: 50px; height: 50px;"/>
+                        }
+                    </td>
+                    <td>
+                        <a href="/EditPop?Id=@funko.Id" class="btn btn-warning btn-sm">Edit</a>
+                        <form method="post" asp-page="/DeletePop" asp-route-id="@funko.Id" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>You don't have any Funkos in your collection yet. Add some!</p>
+}
+
