@@ -9,7 +9,7 @@
         public string Title { get; set; }
         public string? ImageUrl { get; set; }
         public ICollection<Sticker>? Stickers { get; set; }
-        public ICollection<FunkoPopSticker> FunkoPopStickers { get; set; }
-        public ICollection<UserFunkoPop> UserFunkoPops {  get; set; }
+        public ICollection<FunkoPopSticker> FunkoPopStickers { get; set; } = new List<FunkoPopSticker>();
+        public ICollection<UserFunkoPop> UserFunkoPops {  get; set; } = new List<UserFunkoPop>();
     }
 }

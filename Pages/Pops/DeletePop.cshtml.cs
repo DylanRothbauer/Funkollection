@@ -60,11 +60,24 @@ namespace Funkollection.Pages.Pops
                 return NotFound();
             }
 
-            // Remove the association (not the FunkoPop itself)
+            // Remove the association between the user and the FunkoPop
             _context.UserFunkoPops.Remove(userFunko);
+
+            // Check if the FunkoPop is associated with any other users
+            var funkoPop = await _context.FunkoPops
+                .Include(fp => fp.UserFunkoPops)
+                .FirstOrDefaultAsync(fp => fp.Id == id);
+
+            if (funkoPop != null && !funkoPop.UserFunkoPops.Any())
+            {
+                // If no other users are linked to this FunkoPop, delete it from the FunkoPop table
+                _context.FunkoPops.Remove(funkoPop);
+            }
+
             await _context.SaveChangesAsync();
 
-            return RedirectToPage("/Pops/MyCollection");
+            return RedirectToPage("/Pops/Collection");
         }
+
     }
 }

@@ -11,5 +11,8 @@
         public FunkoPop FunkoPop { get; set; }
 
         public DateTime DateAcquired { get; set; }
+
+        // User-specific image URL for this Funko Pop
+        public string? ImageUrl { get; set; }
     }
 }
