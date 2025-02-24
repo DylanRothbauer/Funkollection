@@ -705,7 +705,7 @@ progress {
 }
 
     .blockquote-footer::before {
-        content: "— ";
+        content: "ï¿½ï¿½";
     }
 
 .img-fluid {
@@ -12503,7 +12503,7 @@ html {
 }
 
 .bg-gradient-primary-to-secondary {
-    background: linear-gradient(45deg, #2937f0, #9f1ae2) !important;
+    background: linear-gradient(45deg, #ffc107, #198754) !important;
 }
 
 .font-alt {
@@ -12661,11 +12661,11 @@ section.cta {
     }
 
         .features-device-mockup .circle .gradient-start-color {
-            stop-color: #2937f0;
+            stop-color: #ffc107;
         }
 
         .features-device-mockup .circle .gradient-end-color {
-            stop-color: #9f1ae2;
+            stop-color: #198754;
         }
 
     .features-device-mockup .shape-1 {
@@ -12682,7 +12682,7 @@ section.cta {
         position: absolute;
         height: 0.75rem;
         width: 0.75rem;
-        fill: #2937f0;
+        fill: #198754;
         bottom: 15%;
         left: 10%;
     }
@@ -12794,11 +12794,11 @@ footer a {
         }
 
             .masthead .masthead-device-mockup .circle .gradient-start-color {
-                stop-color: #2937f0;
+                stop-color: #ffc107;
             }
 
             .masthead .masthead-device-mockup .circle .gradient-end-color {
-                stop-color: #9f1ae2;
+                stop-color: #198754;
             }
 
         .masthead .masthead-device-mockup .shape-1 {
@@ -12806,7 +12806,7 @@ footer a {
             height: 1rem;
             width: 1rem;
             transform: rotate(-10deg);
-            fill: #2937f0;
+            fill: #198754;
             bottom: 15%;
             left: 10%;
         }
@@ -12815,7 +12815,7 @@ footer a {
             position: absolute;
             height: 0.75rem;
             width: 0.75rem;
-            fill: #2937f0;
+            fill: #198754;
             top: 15%;
             right: 10%;
         }
