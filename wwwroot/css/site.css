@@ -96,6 +96,12 @@ html, body {
     margin-right: auto;
 }
 
+@media (min-width: 576px) {
+    .features-device-mockup .circle {
+
+    }
+}
+
 
 @charset "UTF-8";
 /*!
@@ -12703,9 +12709,10 @@ section.cta {
 
 @media (min-width: 576px) {
     .features-device-mockup .circle {
-        width: 100%;
+        width: 59%;
+        height: auto;
         display: block;
-        left: auto;
+        left: 21%;
         z-index: -1;
     }
 
@@ -12717,8 +12724,8 @@ section.cta {
 
 @media (min-width: 768px) {
     .features-device-mockup .circle {
-        width: 100%;
-        left: auto;
+        width: 50%;
+        left: 25%;
         z-index: -1;
     }
 
