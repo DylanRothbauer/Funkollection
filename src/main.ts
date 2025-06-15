@@ -19,6 +19,7 @@ import Accordion from 'primevue/accordion'
 import AccordionPanel from 'primevue/accordionpanel'
 import AccordionHeader from 'primevue/accordionheader'
 import AccordionContent from 'primevue/accordioncontent'
+import Divider from 'primevue/divider'
 
 const app = createApp(App)
 
@@ -31,6 +32,7 @@ app.component('Accordion', Accordion)
 app.component('AccordionPanel', AccordionPanel)
 app.component('AccordionHeader', AccordionHeader)
 app.component('AccordionContent', AccordionContent)
+app.component('Divider', Divider)
 
 app.use(createPinia())
 app.use(PrimeVue, {

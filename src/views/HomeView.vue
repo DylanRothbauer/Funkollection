@@ -55,7 +55,7 @@ const faqs = [
   <main class="main-div w-screen h-screen">
     <!-- Title -->
     <!-- Left Column-->
-    <div class="section-div flex">
+    <div class="section-div flex" id="home">
       <div class="flex-1">
         <h1 class="playfair-display-hometitle text-7xl landing-title font-bold">Collect.</h1>
         <h1 class="playfair-display-hometitle text-7xl landing-title font-bold">Organize.</h1>
@@ -81,7 +81,7 @@ const faqs = [
     </div>
 
     <!-- Features -->
-    <div class="section-div flex flex-row">
+    <div class="section-div flex flex-row" id="features">
       <!-- Left column: vertical stack -->
       <div class="flex-1 flex flex-col gap-y-4 relative w-64 h-64 flex items-left justify-center">
         <div
@@ -126,7 +126,7 @@ const faqs = [
     </div>
 
     <!-- About -->
-    <div class="section-div flex">
+    <div class="section-div flex" id="about">
       <!-- Left Column: Text -->
       <div class="flex-col flex-1">
         <h1 class="playfair-display-hometitle text-7xl landing-title font-bold">About</h1>
@@ -153,7 +153,7 @@ const faqs = [
     </div>
 
     <!-- Testimonials -->
-    <div class="flex justify-center">
+    <div class="flex justify-center" id="testimonials">
       <h1
         class="playfair-display-hometitle text-7xl landing-title font-bold"
         style="align-items: center"
@@ -225,7 +225,7 @@ const faqs = [
     </div>
 
     <!-- FAQ -->
-    <div class="flex justify-center">
+    <div class="flex justify-center" id="faq">
       <h1
         class="playfair-display-hometitle text-7xl landing-title font-bold"
         style="align-items: center"
@@ -282,9 +282,78 @@ const faqs = [
         </div>
       </div>
     </div>
-  </main>
+    <footer>
+      <div class="section-div flex">
+        <div class="flex-col flex-1">
+          <p class="text-2xl/12 home-text">Funkollection</p>
+          <p>
+            Your one-stop app for organizing, tracking, and showcasing your Funko Pop collection.
+          </p>
+          <div class="flex-row">
+            <div class="flex gap-x-6 justify-start" style="padding-top: 2rem">
+              <a class="pi pi-github" href="/" target="_blank" rel="noopener noreferrer"></a>
+              <a class="pi pi-instagram" href="/" target="_blank" rel="noopener noreferrer"></a>
+              <a class="pi pi-tiktok" href="/" target="_blank" rel="noopener noreferrer"></a>
+              <a class="pi pi-youtube" href="/" target="_blank" rel="noopener noreferrer"></a>
+            </div>
+          </div>
+        </div>
+        <div class="flex-col flex-1">
+          <p class="text-2xl/12 home-text">Quick Links</p>
+          <div class="flex-col">
+            <div>
+              <a href="#home" class="footer-link">Home</a>
+            </div>
 
-  <footer>Footer</footer>
+            <div>
+              <a href="#features" class="footer-link">Features</a>
+            </div>
+
+            <div>
+              <a href="#about" class="footer-link">About</a>
+            </div>
+
+            <div>
+              <a href="#testimonials" class="footer-link">Testimonials</a>
+            </div>
+
+            <div>
+              <a href="#faq" class="footer-link">FAQs</a>
+            </div>
+          </div>
+        </div>
+        <div class="flex-col flex-1">
+          <p class="text-2xl/12 home-text">Company</p>
+          <div class="flex-col">
+            <div>
+              <a href="/" class="footer-link">About Us</a>
+            </div>
+
+            <div>
+              <a href="/" class="footer-link">Terms of Use</a>
+            </div>
+
+            <div>
+              <a href="/" class="footer-link">Privacy Policy</a>
+            </div>
+          </div>
+        </div>
+        <div class="flex-col flex-1">
+          <p class="text-2xl/12 home-text">Get in Touch</p>
+          <div class="flex-col">
+            <p>
+              Have feedback or questions? Reach out via social media or email us at:
+              support@funkollection.app
+            </p>
+          </div>
+        </div>
+      </div>
+      <Divider />
+      <div class="flex-row flex-1">
+        <p>@2025 Funkollection. All rights reserved.</p>
+      </div>
+    </footer>
+  </main>
 </template>
 
 <style>
@@ -389,5 +458,13 @@ const faqs = [
   /* Same as feature card */
   font-size: var(--p-card-title-font-size);
   font-weight: var(--p-card-title-font-weight);
+}
+
+.footer-link {
+  color: gray;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
 }
 </style>
