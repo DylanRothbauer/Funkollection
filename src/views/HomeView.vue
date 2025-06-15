@@ -3,6 +3,22 @@ import { ref } from 'vue'
 import flashImg from '../assets/img/funkoPop_Flash.png'
 import obiImg from '../assets/img/funkoPop_Obi.png'
 
+import { auth, provider, signInWithPopup } from '../firebase.js'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, provider)
+    // User info: result.user
+    alert(`Signed in as ${result.user.displayName}`)
+    router.push('/about')
+  } catch (error) {
+    alert('Sign in failed: ' + error.message)
+  }
+}
+
 const images = [
   { src: flashImg, alt: 'Funko Pop Flash' },
   { src: obiImg, alt: 'Funko Pop Obi' },
@@ -33,8 +49,7 @@ const faqs = [
   <header class="landing-header">
     <div class="app-name">Funkollection</div>
     <div class="auth-links">
-      <a href="#" class="login">Log In</a>
-      <a href="#" class="signup">Sign Up</a>
+      <a @click="signInWithGoogle" class="signin">Sign In with Google</a>
     </div>
   </header>
   <main class="main-div w-screen h-screen">
@@ -263,7 +278,7 @@ const faqs = [
           Pop collections in one place.
         </p>
         <div class="auth-links" style="padding-top: 2rem">
-          <a href="#" class="signup">Sign Up</a>
+          <a @click="signInWithGoogle" class="login google-btn signin">Sign In with Google</a>
         </div>
       </div>
     </div>
@@ -322,12 +337,13 @@ const faqs = [
 .auth-links a.login:hover {
   background: #f0f0f0;
 }
-.auth-links a.signup {
+.auth-links a.signin {
   background: #333;
   color: #fff;
 }
-.auth-links a.signup:hover {
-  background: #555;
+.auth-links a.signin:hover {
+  background: grey;
+  cursor: pointer;
 }
 
 .landing-title {
