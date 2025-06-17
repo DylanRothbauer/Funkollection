@@ -1,45 +1,75 @@
-# Funkollection
+# (づ> v <)づ♡ Funkollection
 
-This template should help get you started developing with Vue 3 in Vite.
+Funkollection is your one-stop web application for tracking, organizing, and showcasing your Funko Pop collection. Whether you're a casual fan or a dedicated collector, this app is built to help you stay organized and inspired by your favorite characters.
 
-## Recommended IDE Setup
+---
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## 🔍 Overview
 
-## Type Support for `.vue` Imports in TS
+As a Funko Pop collector, I realized there’s a Pop for everything I love — from TV shows to games to anime. But as my collection grew, it became harder to remember what I already owned. Funkollection was born to solve that — so you never accidentally buy a duplicate again.
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+---
 
-## Customize configuration
+## ✨ Features
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+- 📦 Add, edit, and remove Pops from your collection  
+- 🧮 Filter, search, and sort your collection by franchise, exclusivity, or ID  
+- 🧾 View total collection stats (planned)  
+- 🌐 Responsive landing page with sections: About, Features, FAQ, Contact  
+- 🎨 Styled with Tailwind CSS + PrimeVue components  
+- 💬 FAQ section and About section included  
+- 🔐 Authentication-ready (planned)
 
-## Project Setup
+---
 
-```sh
-npm install
-```
+## 🧰 Tech Stack
 
-### Compile and Hot-Reload for Development
+- **Frontend Framework:** Vue 3 + Vite  
+- **Styling:** Tailwind CSS, PrimeVue  
+- **State Management:** Vue's built-in reactivity (Pinia or Vuex optional)  
+- **Routing:** Vue Router (if multi-page)  
+- **Backend:** (Planned) Node.js/Express + MongoDB or Firebase  
+- **Version Control:** Git + Bitbucket  
 
-```sh
-npm run dev
-```
+---
 
-### Type-Check, Compile and Minify for Production
+## 📸 Screenshots
 
-```sh
-npm run build
-```
+| Landing Page | Collection Table |
+|--------------|------------------|
+| ![Landing Page](./images/homeDemo.png) | ![Table Demo](./images/tableDemo.png) |
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+---
 
-```sh
-npm run test:unit
-```
+## 🚧 In Progress
 
-### Lint with [ESLint](https://eslint.org/)
+- 🔒 User login and sign-up system  
+- 📥 Pop wishlist  
+- 💸 Estimated value tracker  
+- 🧠 Duplicate detection  
+- 📱 Mobile-first refinements  
+- 🔁 Barcode scanning & auto-fill integration  
 
-```sh
-npm run lint
-```
+---
+
+## 🐞 Known Bugs
+
+- ❗ Pop images sometimes fail to load (CORS issue with test API)  
+- 🧩 Responsive table overflow on smaller devices (WIP fix)  
+- 🔍 Search occasionally returns inconsistent results (improving fuzzy logic)  
+
+---
+
+## 📁 Project Structure (simplified)
+Funkollection/  
+├── public/  
+│ └── images/  
+├── src/  
+│ ├── assets/  
+│ ├── components/  
+│ ├── views/  
+│ ├── App.vue  
+│ └── main.js  
+├── tailwind.config.js  
+├── vite.config.js  
+└── package.json  
