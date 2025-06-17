@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import Layout from '@/components/Layout.vue'
 import AboutView from '../views/AboutView.vue'
+import DashboardView from '@/views/DashboardView.vue'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 
 const router = createRouter({
@@ -14,12 +15,18 @@ const router = createRouter({
     },
     {
       path: '/',
-      name: 'layout',
       component: Layout,
       children: [
         {
-          path: '/about',
+          path: 'about',
+          name: 'about',
           component: AboutView,
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'dashboard',
+          name: 'dashboard',
+          component: DashboardView,
           meta: { requiresAuth: true },
         },
       ],

@@ -21,7 +21,7 @@ const handleSignOut = () => {
   <header>
     <div class="wrapper">
       <nav>
-        <RouterLink to="/">Home</RouterLink>
+        <RouterLink to="/">Dashboard</RouterLink>
         <RouterLink to="/about">About</RouterLink>
         <button @click="handleSignOut" class="signin">Sign Out</button>
       </nav>

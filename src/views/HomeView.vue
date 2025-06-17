@@ -4,6 +4,8 @@ import flashImg from '../assets/img/funkoPop_Flash.png'
 import obiImg from '../assets/img/funkoPop_Obi.png'
 
 import { auth, provider, signInWithPopup } from '../firebase.js'
+import { db } from '../firebase'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -11,8 +13,22 @@ const router = useRouter()
 const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, provider)
-    // User info: result.user
-    alert(`Signed in as ${result.user.displayName}`)
+    const user = result.user
+
+    // Firestore user creation/check
+    const userRef = doc(db, 'users', user.uid)
+    const userSnap = await getDoc(userRef)
+    if (!userSnap.exists()) {
+      await setDoc(userRef, {
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+        createdAt: new Date(),
+        // More custom fields
+      })
+    }
+
+    alert(`Signed in as ${user.displayName}`)
     router.push('/about')
   } catch (error) {
     alert('Sign in failed: ' + error.message)
