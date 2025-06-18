@@ -34,20 +34,20 @@ const router = createRouter({
   ],
 })
 
-/// Navigation guard for auth
-router.beforeEach((to, from, next) => {
-  const auth = getAuth()
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+// /// Navigation guard for auth
+// router.beforeEach((to, from, next) => {
+//   const auth = getAuth()
+//   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
-  onAuthStateChanged(auth, (user) => {
-    if (requiresAuth && !user) {
-      next('/') // Not signed in, redirect to home
-    } else if (!requiresAuth && user && to.path === '/') {
-      next('/dashboard') // Signed in, redirect to dashboard if trying to access home
-    } else {
-      next() // Allow navigation
-    }
-  })
-})
+//   onAuthStateChanged(auth, (user) => {
+//     if (requiresAuth && !user) {
+//       next('/') // Not signed in, redirect to home
+//     } else if (!requiresAuth && user && to.path === '/') {
+//       next('/dashboard') // Signed in, redirect to dashboard if trying to access home
+//     } else {
+//       next() // Allow navigation
+//     }
+//   })
+// })
 
 export default router

@@ -3,37 +3,38 @@ import { ref } from 'vue'
 import flashImg from '../assets/img/funkoPop_Flash.png'
 import obiImg from '../assets/img/funkoPop_Obi.png'
 
-import { auth, provider, signInWithPopup } from '../firebase.js'
+import { auth, provider } from '../firebase.js'
+import { signInWithPopup } from 'firebase/auth'
 import { db } from '../firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const signInWithGoogle = async () => {
-  try {
-    const result = await signInWithPopup(auth, provider)
-    const user = result.user
+// const signInWithGoogle = async () => {
+//   try {
+//     const result = await signInWithPopup(auth, provider)
+//     const user = result.user
 
-    // Firestore user creation/check
-    const userRef = doc(db, 'users', user.uid)
-    const userSnap = await getDoc(userRef)
-    if (!userSnap.exists()) {
-      await setDoc(userRef, {
-        displayName: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
-        createdAt: new Date(),
-        // More custom fields
-      })
-    }
+//     // Firestore user creation/check
+//     const userRef = doc(db, 'users', user.uid)
+//     const userSnap = await getDoc(userRef)
+//     if (!userSnap.exists()) {
+//       await setDoc(userRef, {
+//         displayName: user.displayName,
+//         email: user.email,
+//         photoURL: user.photoURL,
+//         createdAt: new Date(),
+//         // More custom fields
+//       })
+//     }
 
-    alert(`Signed in as ${user.displayName}`)
-    router.push('/dashboard')
-  } catch (error) {
-    alert('Sign in failed: ' + error.message)
-  }
-}
+//     alert(`Signed in as ${user.displayName}`)
+//     router.push('/dashboard')
+//   } catch (error) {
+//     alert('Sign in failed: ' + error.message)
+//   }
+// }
 
 const images = [
   { src: flashImg, alt: 'Funko Pop Flash' },
@@ -65,7 +66,8 @@ const faqs = [
   <header class="landing-header">
     <div class="app-name">Funkollection</div>
     <div class="auth-links">
-      <a @click="signInWithGoogle" class="signin">Sign In with Google</a>
+      <!-- <a href="#" @click.prevent="signInWithGoogle" class="signin">Sign In with Google</a> -->
+      <router-link to="/dashboard" class="signin">Sign In with Google</router-link>
     </div>
   </header>
   <main class="main-div w-screen h-screen">
