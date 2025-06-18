@@ -18,17 +18,35 @@ const handleSignOut = () => {
 </script>
 
 <template>
-  <header>
-    <div class="wrapper">
-      <nav>
-        <RouterLink to="/">Dashboard</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-        <button @click="handleSignOut" class="signin">Sign Out</button>
-      </nav>
-    </div>
-  </header>
+  <div class="flex nav-container" style="position: relative">
+    <nav class="flex flex-col w-48">
+      <div>
+        <h1>Funkollection</h1>
+      </div>
+      <RouterLink to="/" class="nav-link">Dashboard</RouterLink>
+      <RouterLink to="/about" class="nav-link">About</RouterLink>
+      <!-- Add more links as needed here -->
 
+      <!-- Spacer pushes the button down-->
+      <div class="flex-1"></div>
+
+      <button @click="handleSignOut" class="nav-link">Sign Out</button>
+    </nav>
+  </div>
   <RouterView />
 </template>
 
-<style></style>
+<style>
+.nav-container {
+  padding-right: 3rem;
+  text-align: center;
+}
+
+.nav-link {
+  margin: 2rem;
+}
+
+.nav-link:hover {
+  cursor: pointer;
+}
+</style>

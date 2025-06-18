@@ -29,7 +29,7 @@ const signInWithGoogle = async () => {
     }
 
     alert(`Signed in as ${user.displayName}`)
-    router.push('/about')
+    router.push('/dashboard')
   } catch (error) {
     alert('Sign in failed: ' + error.message)
   }

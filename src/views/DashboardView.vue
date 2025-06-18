@@ -14,7 +14,9 @@ onMounted(() => {
 
 <template>
   <div class="w-screen h-screen bg-gray-900">
-    <h1>Dashboard</h1>
+    <header class="flex items-center justify-between p-4 bg-white">
+      <h1>Welcome back, {{ user.displayName }}</h1>
+    </header>
     <div v-if="user" class="flex items-center gap-4 mt-4">
       <img
         v-if="user.photoURL"
