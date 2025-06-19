@@ -14,7 +14,7 @@ const user = ref(null)
 
 <template>
   <div>
-    <header class="flex items-center justify-between p-4">
+    <header class="flex items-center justify-between p-4" style="background-color: white">
       <h1>Welcome back, Signed in User</h1>
     </header>
   </div>

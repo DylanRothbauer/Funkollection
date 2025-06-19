@@ -1,6 +1,13 @@
 @import './base.css';
 @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 @import 'tailwindcss';
+:root {
+  --funkollection-primary: #2f4f4f;
+  --funkollection-background: #faf3e0;
+  --funkollection-secondary: #8aa29e;
+  --funkollection-text: #333333;
+  --funkollection-soft-white: #ffffff;
+}
 
 #app {
   max-width: 100%;

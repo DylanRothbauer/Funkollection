@@ -20,17 +20,17 @@ import { useRouter } from 'vue-router'
 <template>
   <div class="flex w-screen h-screen">
     <div class="flex nav-container">
-      <nav class="flex flex-col w-48 bg-gray-200">
+      <nav class="flex flex-col w-48">
         <div>
-          <h1>Funkollection</h1>
+          <h1 class="text-2xl">Funkollection</h1>
         </div>
-        <RouterLink to="/dashboard" class="nav-link" active-class="router-link-active"
+        <RouterLink to="/dashboard" class="nav-link text-xl" active-class="router-link-active"
           >Dashboard</RouterLink
         >
-        <RouterLink to="/collection" class="nav-link" active-class="router-link-active"
+        <RouterLink to="/collection" class="nav-link text-xl" active-class="router-link-active"
           >Collection</RouterLink
         >
-        <RouterLink to="/about" class="nav-link" active-class="bg-blue-500 text-white font-bold"
+        <RouterLink to="/about" class="nav-link text-xl" active-class="router-link-active"
           >About</RouterLink
         >
         <!-- Add more links as needed here -->
@@ -42,7 +42,7 @@ import { useRouter } from 'vue-router'
       </nav>
     </div>
 
-    <div class="flex-1">
+    <div class="flex-1 main-content">
       <RouterView />
     </div>
   </div>
@@ -52,10 +52,12 @@ import { useRouter } from 'vue-router'
 .nav-container {
   padding-right: 3rem;
   text-align: center;
+  color: var(--funkollection-soft-white);
+  background-color: var(--funkollection-primary);
 }
 
 .nav-link {
-  margin: 2rem;
+  margin: 1rem;
 }
 
 .nav-link:hover {
@@ -63,9 +65,12 @@ import { useRouter } from 'vue-router'
 }
 
 .router-link-active {
-  background-color: #3b82f6; /* Tailwind blue-500 */
-  color: #fff;
+  background-color: var(--funkollection-secondary);
   font-weight: bold;
   border-radius: 0.375rem; /* rounded-md */
+}
+
+.main-content {
+  background-color: var(--funkollection-background);
 }
 </style>
