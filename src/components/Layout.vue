@@ -1,20 +1,28 @@
 <script setup>
+import { onMounted, ref } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
-import { getAuth, signOut } from 'firebase/auth'
+import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'
 import { useRouter } from 'vue-router'
+import router from '@/router'
 
-// const auth = getAuth()
-// const router = useRouter()
+const isLoggedIn = ref(false)
+let auth
 
-// const handleSignOut = () => {
-//   signOut(auth)
-//     .then(() => {
-//       router.push('/') // Redirect to home after sign out
-//     })
-//     .catch((error) => {
-//       alert('Sign out failed: ' + error.message)
-//     })
-// }
+onMounted(() => {
+  auth = getAuth()
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      isLoggedIn.value = true
+    } else {
+      isLoggedIn.value = false
+    }
+  })
+})
+const handleSignOut = () => {
+  signOut(auth).then(() => {
+    router.push('/')
+  })
+}
 </script>
 
 <template>
@@ -75,7 +83,7 @@ import { useRouter } from 'vue-router'
         <div class="flex-1"></div>
 
         <div>
-          <button class="flex-1 nav-link">Sign Out</button>
+          <button @click="handleSignOut" class="flex-1 nav-link">Sign Out</button>
         </div>
       </nav>
     </div>

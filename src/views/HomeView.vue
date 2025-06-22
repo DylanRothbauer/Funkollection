@@ -4,47 +4,31 @@ import flashImg from '../assets/img/funkoPop_Flash.png'
 import obiImg from '../assets/img/funkoPop_Obi.png'
 
 import { auth, provider } from '../firebase.js'
-import { signInWithPopup } from 'firebase/auth'
+import { getAuth, signInWithPopup } from 'firebase/auth'
 import { db } from '../firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// const signInWithGoogle = async () => {
-//   try {
-//     const result = await signInWithPopup(auth, provider)
-//     const user = result.user
-
-//     // Firestore user creation/check
-//     const userRef = doc(db, 'users', user.uid)
-//     const userSnap = await getDoc(userRef)
-//     if (!userSnap.exists()) {
-//       await setDoc(userRef, {
-//         displayName: user.displayName,
-//         email: user.email,
-//         photoURL: user.photoURL,
-//         createdAt: new Date(),
-//         // More custom fields
-//       })
-//     }
-
-//     alert(`Signed in as ${user.displayName}`)
-//     router.push('/dashboard')
-//   } catch (error) {
-//     alert('Sign in failed: ' + error.message)
-//   }
-// }
+const singInWithGoogle = () => {
+  signInWithPopup(getAuth(), provider)
+    .then((result) => {
+      console.log(result.user)
+      router.push('/dashboard')
+    })
+    .catch((error) => {})
+}
 
 const images = [
   { src: flashImg, alt: 'Funko Pop Flash' },
   { src: obiImg, alt: 'Funko Pop Obi' },
 ]
 
-const aboutText = `My journey with Funko Pops started when I realized there was a Pop for almost everything I loved — 
-from movies and games to shows and childhood icons. As my collection grew, so did the challenge of keeping track. 
-I often found myself asking, “Do I already own this one?” That simple question became the inspiration behind Funkollection — 
-a place to organize, showcase, and celebrate your collection with confidence. Whether you're just starting out or curating 
+const aboutText = `My journey with Funko Pops started when I realized there was a Pop for almost everything I loved —
+from movies and games to shows and childhood icons. As my collection grew, so did the challenge of keeping track.
+I often found myself asking, “Do I already own this one?” That simple question became the inspiration behind Funkollection —
+a place to organize, showcase, and celebrate your collection with confidence. Whether you're just starting out or curating
 shelves of Pops, Funkollection is here to help you keep track of what you love.`
 
 const faqs = [
@@ -67,7 +51,9 @@ const faqs = [
     <div class="app-name">Funkollection</div>
     <div class="auth-links">
       <!-- <a href="#" @click.prevent="signInWithGoogle" class="signin">Sign In with Google</a> -->
-      <router-link to="/dashboard" class="signin">Sign In with Google</router-link>
+      <router-link to="/dashboard" @click="singInWithGoogle" class="signin"
+        >Sign In with Google</router-link
+      >
     </div>
   </header>
   <main class="main-div w-screen h-screen">
