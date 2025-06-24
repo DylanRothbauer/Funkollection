@@ -24,6 +24,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import ColumnGroup from 'primevue/columngroup' // optional
 import Row from 'primevue/row' // optional
+import AutoComplete from 'primevue/autocomplete'
 
 const app = createApp(App)
 
@@ -41,6 +42,7 @@ app.component('DataTable', DataTable)
 app.component('Column', Column)
 app.component('ColumnGroup', ColumnGroup)
 app.component('Row', Row)
+app.component('AutoComplete', AutoComplete)
 
 app.use(createPinia())
 app.use(PrimeVue, {
