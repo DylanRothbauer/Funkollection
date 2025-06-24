@@ -27,7 +27,18 @@ onMounted(() => {
       const funkoDetails = await Promise.all(
         funkoIds.map(async (id) => {
           const funkoDoc = await getDoc(doc(db, 'FunkoPops', id))
-          return funkoDoc.exists() ? { id, ...funkoDoc.data() } : { id }
+          if (funkoDoc.exists()) {
+            const data = funkoDoc.data()
+            return {
+              id: id || '',
+              name: data.name || '',
+              title: data.title || '',
+              series: data.series || '',
+              ...data,
+            }
+          } else {
+            return { id: id || '', name: '', title: '', series: '' }
+          }
         }),
       )
 
@@ -71,28 +82,6 @@ const confirmDeleteSelected = () => {
 <template>
   <div>
     <div class="card">
-      <Toolbar class="mb-6">
-        <template #start>
-          <Button label="New" icon="pi pi-plus" class="mr-2" @click="openNew" />
-          <Button
-            label="Delete"
-            icon="pi pi-trash"
-            severity="danger"
-            outlined
-            @click="confirmDeleteSelected"
-            :disabled="!selectedFunkos || !selectedFunkos.length"
-          />
-        </template>
-        <template #end>
-          <Button
-            label="Export"
-            icon="pi pi-upload"
-            severity="secondary"
-            @click="exportCSV($event)"
-          />
-        </template>
-      </Toolbar>
-
       <DataTable
         ref="dt"
         v-model:selection="selectedFunkos"
@@ -101,62 +90,46 @@ const confirmDeleteSelected = () => {
         :paginator="true"
         :rows="10"
         :filters="filters"
-        filterDisplay="row"
         :globalFilterFields="['id', 'name', 'title', 'series']"
         tableStyle="min-width: 50rem"
+        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+        :rowsPerPageOptions="[5, 10, 25, 50]"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} products"
       >
         <template #header>
           <div class="flex flex-wrap gap-2 items-center justify-between">
-            <h4 class="m-0">My Funko Pops</h4>
-            <IconField>
-              <InputIcon>
-                <i class="pi pi-search" />
-              </InputIcon>
-              <InputText v-model="filters['global'].value" placeholder="Search..." />
-            </IconField>
+            <div class="flex items-center gap-2">
+              <IconField>
+                <InputIcon>
+                  <i class="pi pi-search" />
+                </InputIcon>
+                <InputText v-model="filters['global'].value" placeholder="Search..." />
+              </IconField>
+            </div>
+            <div class="flex items-center gap-2">
+              <Button label="New" icon="pi pi-plus" class="mr-2" @click="openNew" />
+              <Button
+                label="Export"
+                icon="pi pi-upload"
+                severity="secondary"
+                @click="exportCSV($event)"
+              />
+            </div>
           </div>
         </template>
         <template #empty> No Funko Pops found. </template>
         <template #loading> Loading Funko Pops data. Please wait. </template>
 
-        <Column selectionMode="multiple" style="width: 3rem" :exportable="false"></Column>
-        <Column field="id" header="ID" sortable style="min-width: 10rem">
-          <template #filter="{ filterModel, filterCallback }">
-            <InputText
-              v-model="filterModel.value"
-              @input="filterCallback()"
-              placeholder="Search by ID"
-            />
-          </template>
-        </Column>
-        <Column field="name" header="Name" sortable style="min-width: 12rem">
-          <template #filter="{ filterModel, filterCallback }">
-            <InputText
-              v-model="filterModel.value"
-              @input="filterCallback()"
-              placeholder="Search by name"
-            />
-          </template>
-        </Column>
-        <Column field="title" header="Title" sortable style="min-width: 12rem">
-          <template #filter="{ filterModel, filterCallback }">
-            <InputText
-              v-model="filterModel.value"
-              @input="filterCallback()"
-              placeholder="Search by title"
-            />
-          </template>
-        </Column>
-        <Column field="series" header="Series" sortable style="min-width: 12rem">
-          <template #filter="{ filterModel, filterCallback }">
-            <InputText
-              v-model="filterModel.value"
-              @input="filterCallback()"
-              placeholder="Search by series"
-            />
-          </template>
-        </Column>
-        <Column :exportable="false" style="min-width: 8rem">
+        <Column field="id" header="ID" sortable style="min-width: 10rem"> </Column>
+        <Column field="name" header="Name" sortable style="min-width: 12rem"> </Column>
+        <Column field="title" header="Title" sortable style="min-width: 12rem"> </Column>
+        <Column field="series" header="Series" sortable style="min-width: 12rem"> </Column>
+        <Column
+          header="Actions"
+          style="min-width: 14rem"
+          :exportable="false"
+          :showFilterMenu="false"
+        >
           <template #body="slotProps">
             <Button
               icon="pi pi-pencil"
@@ -176,7 +149,6 @@ const confirmDeleteSelected = () => {
         </Column>
       </DataTable>
     </div>
-    <!-- Dialogs for add/edit/delete can be added here -->
   </div>
 </template>
 
@@ -187,6 +159,10 @@ const confirmDeleteSelected = () => {
 }
 
 .p-datatable-header {
+  background: var(--funkollection-background) !important;
+}
+
+.p-toolbar {
   background: var(--funkollection-background) !important;
 }
 </style>

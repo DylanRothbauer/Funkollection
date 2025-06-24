@@ -160,7 +160,7 @@ const addFunkoPop = async () => {
       await setDoc(funkoDocRef, {
         name: funkoName.value,
         title: funkoTitle.value,
-        series: selectedSeries.value?.value || '',
+        series: selectedSeries.value || '',
         id: funkoID.value,
         createdAt: new Date(),
       })
