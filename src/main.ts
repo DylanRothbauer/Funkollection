@@ -25,6 +25,9 @@ import Column from 'primevue/column'
 import ColumnGroup from 'primevue/columngroup' // optional
 import Row from 'primevue/row' // optional
 import AutoComplete from 'primevue/autocomplete'
+import Toast from 'primevue/toast'
+import ToastService from 'primevue/toastservice'
+import ConfirmationService from 'primevue/confirmationservice'
 
 const app = createApp(App)
 
@@ -43,7 +46,10 @@ app.component('Column', Column)
 app.component('ColumnGroup', ColumnGroup)
 app.component('Row', Row)
 app.component('AutoComplete', AutoComplete)
+app.component('Toast', Toast)
 
+app.use(ToastService)
+app.use(ConfirmationService)
 app.use(createPinia())
 app.use(PrimeVue, {
   theme: {

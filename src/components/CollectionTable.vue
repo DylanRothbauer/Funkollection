@@ -1,53 +1,66 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { FilterMatchMode } from '@primevue/core/api'
 import { InputText } from 'primevue'
 import { IconField } from 'primevue'
 import { InputIcon } from 'primevue'
-import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
 import AddPopDialog from '@/components/AddPopDialog.vue'
+import ConfirmDialog from 'primevue/confirmdialog'
+import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 
 const funkos = ref([])
 const user = ref(null)
 const selectedFunkos = ref([])
 const showAddDialog = ref(false)
+const toast = useToast()
+const confirm = useConfirm()
+
+async function fetchFunkos() {
+  if (!user.value) return
+  // 1. Get all Funko IDs from the user's subcollection
+  const userFunkosSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
+  const funkoIds = userFunkosSnapshot.docs.map((doc) => doc.id)
+
+  // 2. Fetch each FunkoPop's details from the global FunkoPops collection
+  const funkoDetails = await Promise.all(
+    funkoIds.map(async (id) => {
+      const funkoDoc = await getDoc(doc(db, 'FunkoPops', id))
+      if (funkoDoc.exists()) {
+        const data = funkoDoc.data()
+        return {
+          id: id || '',
+          name: data.name || '',
+          title: data.title || '',
+          series: data.series || '',
+          ...data,
+        }
+      } else {
+        return { id: id || '', name: '', title: '', series: '' }
+      }
+    }),
+  )
+  funkos.value = funkoDetails
+}
 
 onMounted(() => {
   const auth = getAuth()
   onAuthStateChanged(auth, async (firebaseUser) => {
     user.value = firebaseUser
     if (user.value) {
-      // 1. Get all Funko IDs from the user's subcollection
-      const userFunkosSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
-      const funkoIds = userFunkosSnapshot.docs.map((doc) => doc.id)
-
-      // 2. Fetch each FunkoPop's details from the global FunkoPops collection
-      const funkoDetails = await Promise.all(
-        funkoIds.map(async (id) => {
-          const funkoDoc = await getDoc(doc(db, 'FunkoPops', id))
-          if (funkoDoc.exists()) {
-            const data = funkoDoc.data()
-            return {
-              id: id || '',
-              name: data.name || '',
-              title: data.title || '',
-              series: data.series || '',
-              ...data,
-            }
-          } else {
-            return { id: id || '', name: '', title: '', series: '' }
-          }
-        }),
-      )
-
-      funkos.value = funkoDetails
+      await fetchFunkos()
     }
   })
+  loading.value = false
 })
+
+function refreshCollection() {
+  fetchFunkos()
+}
 
 const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -67,22 +80,40 @@ onMounted(() => {
 const exportCSV = () => {
   dt.value.exportCSV()
 }
-const openNew = () => {
-  // Open your add dialog (implement as needed)
-}
 const editFunko = (funko) => {
   // Open your edit dialog (implement as needed)
 }
-const confirmDeleteFunko = (funko) => {
-  // Open your delete dialog (implement as needed)
+async function deleteFunko(funko) {
+  if (!user.value) return
+  try {
+    await deleteDoc(doc(db, 'users', user.value.uid, 'funkos', funko.id))
+    toast.add({ severity: 'success', summary: 'Deleted', detail: 'Funko Pop deleted!', life: 3000 })
+    refreshCollection()
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to delete Funko Pop.',
+      life: 3000,
+    })
+  }
 }
-const confirmDeleteSelected = () => {
-  // Open your bulk delete dialog (implement as needed)
+
+function confirmDeleteFunko(funko) {
+  confirm.require({
+    message: `Are you sure you want to delete "${funko.name || funko.title || funko.id}" from your collection?`,
+    header: 'Delete Confirmation',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Yes',
+    rejectLabel: 'No',
+    accept: () => deleteFunko(funko),
+  })
 }
 </script>
 
 <template>
   <div>
+    <ConfirmDialog />
     <div class="card">
       <DataTable
         ref="dt"

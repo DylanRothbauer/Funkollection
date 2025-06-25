@@ -4,6 +4,7 @@ import { auth, db } from '../firebase.js'
 import { onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import Dialog from 'primevue/dialog'
+import { useToast } from 'primevue/usetoast'
 
 const props = defineProps({
   visible: Boolean,
@@ -120,6 +121,7 @@ const seriesOptions = [
   'Pop! Zodiac',
 ]
 
+const toast = useToast()
 const funkoImage = ref('')
 const seriesSuggestions = ref([])
 const selectedSeries = ref('')
@@ -181,7 +183,6 @@ const addFunkoPop = async () => {
         title: funkoTitle.value,
         series: selectedSeries.value || '',
         id: funkoID.value,
-        image: funkoImage.value || '',
         createdAt: new Date(),
       })
     }
@@ -192,13 +193,16 @@ const addFunkoPop = async () => {
       await updateDoc(userFunkoRef, {
         quantity: prevQty + 1,
         lastAddedAt: new Date(),
+        image: funkoImage.value || '',
       })
     } else {
       await setDoc(userFunkoRef, {
         quantity: 1,
         addedAt: new Date(),
+        image: funkoImage.value || '',
       })
     }
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Funko Pop added!', life: 3000 })
     emit('pop-added')
     emit('update:visible', false)
     resetForm()
@@ -240,7 +244,13 @@ const addFunkoPop = async () => {
         <button type="button" class="p-2 rounded border" @click="emit('update:visible', false)">
           Cancel
         </button>
-        <button type="submit" class="p-2 bg-blue-500 text-white rounded">Add</button>
+        <button
+          type="submit"
+          class="p-2 text-white rounded"
+          style="background: var(--p-button-primary-background)"
+        >
+          Add
+        </button>
       </div>
     </form>
   </Dialog>
