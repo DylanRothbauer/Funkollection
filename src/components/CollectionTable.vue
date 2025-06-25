@@ -9,10 +9,12 @@ import { IconField } from 'primevue'
 import { InputIcon } from 'primevue'
 import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
+import AddPopDialog from '@/components/AddPopDialog.vue'
 
 const funkos = ref([])
 const user = ref(null)
 const selectedFunkos = ref([])
+const showAddDialog = ref(false)
 
 onMounted(() => {
   const auth = getAuth()
@@ -107,7 +109,7 @@ const confirmDeleteSelected = () => {
               </IconField>
             </div>
             <div class="flex items-center gap-2">
-              <Button label="New" icon="pi pi-plus" class="mr-2" @click="openNew" />
+              <Button label="New" icon="pi pi-plus" class="mr-2" @click="showAddDialog = true" />
               <Button
                 label="Export"
                 icon="pi pi-upload"
@@ -148,6 +150,7 @@ const confirmDeleteSelected = () => {
           </template>
         </Column>
       </DataTable>
+      <AddPopDialog v-model:visible="showAddDialog" @pop-added="refreshCollection" />
     </div>
   </div>
 </template>

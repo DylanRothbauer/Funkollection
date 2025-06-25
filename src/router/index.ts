@@ -4,7 +4,6 @@ import Layout from '@/components/Layout.vue'
 import AboutView from '../views/AboutView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import CollectionView from '@/views/CollectionView.vue'
-import AddPop from '@/views/AddPop.vue'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 
 const router = createRouter({
@@ -35,12 +34,6 @@ const router = createRouter({
           path: 'collection',
           name: 'collection',
           component: CollectionView,
-          meta: { requiresAuth: true },
-        },
-        {
-          path: 'add-pop',
-          name: 'add-pop',
-          component: AddPop,
           meta: { requiresAuth: true },
         },
       ],

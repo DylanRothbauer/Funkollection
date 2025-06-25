@@ -1,9 +1,14 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { auth, db } from '../firebase.js'
 import { onAuthStateChanged } from 'firebase/auth'
-import { collection, addDoc } from 'firebase/firestore'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import Dialog from 'primevue/dialog'
+
+const props = defineProps({
+  visible: Boolean,
+})
+const emit = defineEmits(['update:visible', 'pop-added'])
 
 const seriesOptions = [
   'Pop! 8-Bit',
@@ -116,6 +121,18 @@ const seriesOptions = [
 ]
 
 const funkoImage = ref('')
+const seriesSuggestions = ref([])
+const selectedSeries = ref('')
+const user = ref(null)
+const funkoName = ref('')
+const funkoTitle = ref('')
+const funkoID = ref('')
+const error = ref('')
+const success = ref('')
+
+onAuthStateChanged(auth, (firebaseUser) => {
+  user.value = firebaseUser
+})
 
 const handleImageUpload = (event) => {
   const file = event.target.files[0]
@@ -127,25 +144,28 @@ const handleImageUpload = (event) => {
     reader.readAsDataURL(file)
   }
 }
-const seriesSuggestions = ref([])
 
 const search = (event) => {
   const query = event.query.toLowerCase()
   seriesSuggestions.value = seriesOptions.filter((option) => option.toLowerCase().includes(query))
 }
 
-const selectedSeries = ref('')
-const user = ref(null)
-const funkoName = ref('')
-const funkoTitle = ref('')
-const funkoSeries = ref('')
-const funkoID = ref('')
-const error = ref('')
-const success = ref('')
+const resetForm = () => {
+  funkoName.value = ''
+  funkoTitle.value = ''
+  selectedSeries.value = ''
+  funkoID.value = ''
+  funkoImage.value = ''
+  error.value = ''
+  success.value = ''
+}
 
-onAuthStateChanged(auth, (firebaseUser) => {
-  user.value = firebaseUser
-})
+watch(
+  () => props.visible,
+  (val) => {
+    if (!val) resetForm()
+  },
+)
 
 const addFunkoPop = async () => {
   if (!user.value) {
@@ -153,7 +173,6 @@ const addFunkoPop = async () => {
     return
   }
   try {
-    // 1. Check if FunkoPop exists in global collection
     const funkoDocRef = doc(db, 'FunkoPops', funkoID.value)
     const funkoDocSnap = await getDoc(funkoDocRef)
     if (!funkoDocSnap.exists()) {
@@ -162,36 +181,27 @@ const addFunkoPop = async () => {
         title: funkoTitle.value,
         series: selectedSeries.value || '',
         id: funkoID.value,
+        image: funkoImage.value || '',
         createdAt: new Date(),
       })
     }
-
-    // 2. Add or increment in the user's collection
     const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', funkoID.value)
     const userFunkoSnap = await getDoc(userFunkoRef)
     if (userFunkoSnap.exists()) {
-      // Increment quantity
       const prevQty = userFunkoSnap.data().quantity || 1
       await updateDoc(userFunkoRef, {
         quantity: prevQty + 1,
         lastAddedAt: new Date(),
       })
     } else {
-      // Set initial quantity to 1
       await setDoc(userFunkoRef, {
         quantity: 1,
         addedAt: new Date(),
       })
     }
-
-    funkoName.value = ''
-    funkoTitle.value = ''
-    funkoSeries.value = ''
-    selectedSeries.value = ''
-    funkoID.value = ''
-
-    success.value = 'Funko Pop added!'
-    error.value = ''
+    emit('pop-added')
+    emit('update:visible', false)
+    resetForm()
   } catch (e) {
     error.value = 'Failed to add Funko Pop.'
     success.value = ''
@@ -200,8 +210,13 @@ const addFunkoPop = async () => {
 </script>
 
 <template>
-  <div class="max-w-md mx-auto mt-8">
-    <h2 class="text-2xl font-bold mb-4">Add a Funko Pop</h2>
+  <Dialog
+    v-model:visible="props.visible"
+    modal
+    header="Add a Funko Pop"
+    :style="{ width: '400px' }"
+    @hide="resetForm"
+  >
     <form @submit.prevent="addFunkoPop" class="flex flex-col gap-4">
       <input v-model="funkoName" placeholder="Name" class="p-2 border rounded" required />
       <input v-model="funkoTitle" placeholder="Title" class="p-2 border rounded" required />
@@ -215,11 +230,18 @@ const addFunkoPop = async () => {
         class="dropdown-select"
       />
       <input v-model="funkoID" placeholder="ID" class="p-2 border rounded" required />
-      <button type="submit" class="p-2 bg-blue-500 text-white rounded">Add Funko Pop</button>
-      <div v-if="success" class="text-green-600">{{ success }}</div>
+      <input type="file" accept="image/*" @change="handleImageUpload" class="p-2 border rounded" />
+      <div v-if="funkoImage" class="mt-2">
+        <img :src="funkoImage" alt="Preview" class="w-24 h-24 object-cover rounded" />
+      </div>
       <div v-if="error" class="text-red-600">{{ error }}</div>
+      <div v-if="success" class="text-green-600">{{ success }}</div>
+      <div class="flex justify-end gap-2">
+        <button type="button" class="p-2 rounded border" @click="emit('update:visible', false)">
+          Cancel
+        </button>
+        <button type="submit" class="p-2 bg-blue-500 text-white rounded">Add</button>
+      </div>
     </form>
-  </div>
+  </Dialog>
 </template>
-
-<style></style>

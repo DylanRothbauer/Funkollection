@@ -57,17 +57,6 @@ const handleSignOut = () => {
 
         <div class="margin-vertical">
           <RouterLink
-            to="/add-pop"
-            class="flex nav-link text-xl items-center"
-            active-class="router-link-active"
-          >
-            <i class="pi pi-plus-circle pr-3 w-3 nav-icon"></i>
-            <span class="ml-2 flex-1">Add Pop</span>
-          </RouterLink>
-        </div>
-
-        <div class="margin-vertical">
-          <RouterLink
             to="/about"
             class="flex nav-link text-xl items-center"
             active-class="router-link-active"
