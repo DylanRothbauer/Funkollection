@@ -12,35 +12,45 @@ import AddPopDialog from '@/components/AddPopDialog.vue'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
+import Dialog from 'primevue/dialog'
 
 const funkos = ref([])
 const user = ref(null)
 const selectedFunkos = ref([])
 const showAddDialog = ref(false)
+const showViewDialog = ref(false)
+const viewedFunko = ref(null)
 const toast = useToast()
 const confirm = useConfirm()
 
 async function fetchFunkos() {
   if (!user.value) return
-  // 1. Get all Funko IDs from the user's subcollection
+  // 1. Get all Funko docs from the user's subcollection (to get image)
   const userFunkosSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
-  const funkoIds = userFunkosSnapshot.docs.map((doc) => doc.id)
+  const userFunkos = userFunkosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
 
-  // 2. Fetch each FunkoPop's details from the global FunkoPops collection
+  // 2. Fetch each FunkoPop's details from the global FunkoPops collection and merge image from user doc
   const funkoDetails = await Promise.all(
-    funkoIds.map(async (id) => {
-      const funkoDoc = await getDoc(doc(db, 'FunkoPops', id))
+    userFunkos.map(async (userFunko) => {
+      const funkoDoc = await getDoc(doc(db, 'FunkoPops', userFunko.id))
       if (funkoDoc.exists()) {
         const data = funkoDoc.data()
         return {
-          id: id || '',
+          id: userFunko.id || '',
           name: data.name || '',
           title: data.title || '',
           series: data.series || '',
+          image: userFunko.image || '',
           ...data,
         }
       } else {
-        return { id: id || '', name: '', title: '', series: '' }
+        return {
+          id: userFunko.id || '',
+          name: '',
+          title: '',
+          series: '',
+          image: userFunko.image || '',
+        }
       }
     }),
   )
@@ -106,14 +116,44 @@ function confirmDeleteFunko(funko) {
     icon: 'pi pi-exclamation-triangle',
     acceptLabel: 'Yes',
     rejectLabel: 'No',
+    acceptClass: 'p-button-danger',
+    rejectClass: '',
     accept: () => deleteFunko(funko),
   })
+}
+
+function viewFunko(funko) {
+  viewedFunko.value = funko
+  showViewDialog.value = true
 }
 </script>
 
 <template>
   <div>
     <ConfirmDialog />
+    <Dialog
+      v-model:visible="showViewDialog"
+      modal
+      header="Funko Pop Details"
+      :style="{ width: '700px', maxWidth: '98vw' }"
+    >
+      <div v-if="viewedFunko" class="flex flex-col items-center p-8">
+        <img
+          v-if="viewedFunko.image"
+          :src="viewedFunko.image"
+          alt="Funko Image"
+          class="w-96 h-96 object-cover rounded mb-8 border shadow-lg"
+        />
+        <div class="text-3xl font-bold mb-4">{{ viewedFunko.name }}</div>
+        <div class="mb-3 text-xl">
+          <span class="font-semibold">Title:</span> {{ viewedFunko.title }}
+        </div>
+        <div class="mb-3 text-xl">
+          <span class="font-semibold">Series:</span> {{ viewedFunko.series }}
+        </div>
+        <div class="mb-3 text-xl"><span class="font-semibold">ID:</span> {{ viewedFunko.id }}</div>
+      </div>
+    </Dialog>
     <div class="card">
       <DataTable
         ref="dt"
@@ -159,25 +199,35 @@ function confirmDeleteFunko(funko) {
         <Column field="series" header="Series" sortable style="min-width: 12rem"> </Column>
         <Column
           header="Actions"
-          style="min-width: 14rem"
+          style="min-width: 16rem"
           :exportable="false"
           :showFilterMenu="false"
         >
           <template #body="slotProps">
-            <Button
-              icon="pi pi-pencil"
-              outlined
-              rounded
-              class="mr-2"
-              @click="editFunko(slotProps.data)"
-            />
-            <Button
-              icon="pi pi-trash"
-              outlined
-              rounded
-              severity="danger"
-              @click="confirmDeleteFunko(slotProps.data)"
-            />
+            <div class="flex gap-2">
+              <Button
+                icon="pi pi-eye"
+                outlined
+                rounded
+                class="mr-1"
+                severity="info"
+                @click="viewFunko(slotProps.data)"
+              />
+              <Button
+                icon="pi pi-pencil"
+                outlined
+                rounded
+                class="mr-1"
+                @click="editFunko(slotProps.data)"
+              />
+              <Button
+                icon="pi pi-trash"
+                outlined
+                rounded
+                severity="danger"
+                @click="confirmDeleteFunko(slotProps.data)"
+              />
+            </div>
           </template>
         </Column>
       </DataTable>

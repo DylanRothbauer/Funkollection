@@ -131,6 +131,7 @@ const funkoTitle = ref('')
 const funkoID = ref('')
 const error = ref('')
 const success = ref('')
+const imageFileName = ref('')
 
 onAuthStateChanged(auth, (firebaseUser) => {
   user.value = firebaseUser
@@ -139,11 +140,15 @@ onAuthStateChanged(auth, (firebaseUser) => {
 const handleImageUpload = (event) => {
   const file = event.target.files[0]
   if (file) {
+    imageFileName.value = file.name
     const reader = new FileReader()
     reader.onload = (e) => {
       funkoImage.value = e.target.result
     }
     reader.readAsDataURL(file)
+  } else {
+    imageFileName.value = ''
+    funkoImage.value = ''
   }
 }
 
@@ -234,9 +239,23 @@ const addFunkoPop = async () => {
         class="dropdown-select"
       />
       <input v-model="funkoID" placeholder="ID" class="p-2 border rounded" required />
-      <input type="file" accept="image/*" @change="handleImageUpload" class="p-2 border rounded" />
+      <div>
+        <label
+          for="funko-image-upload"
+          class="p-2 border rounded cursor-pointer bg-gray-100 hover:bg-gray-200 block text-center"
+        >
+          {{ imageFileName || 'Upload Image' }}
+        </label>
+        <input
+          id="funko-image-upload"
+          type="file"
+          accept="image/*"
+          @change="handleImageUpload"
+          class="hidden"
+        />
+      </div>
       <div v-if="funkoImage" class="mt-2">
-        <img :src="funkoImage" alt="Preview" class="w-24 h-24 object-cover rounded" />
+        <img :src="funkoImage" alt="Preview" class="w-24 h-24 object-cover rounded mx-auto" />
       </div>
       <div v-if="error" class="text-red-600">{{ error }}</div>
       <div v-if="success" class="text-green-600">{{ success }}</div>
