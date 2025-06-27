@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { auth } from '../firebase.js'
 import { onAuthStateChanged } from 'firebase/auth'
+import PopCountCard from '../components/PopCountCard.vue'
 const user = ref(null)
 
 onMounted(() => {
@@ -16,6 +17,9 @@ onMounted(() => {
     <header class="flex items-center justify-between p-4" style="background-color: white">
       <h1>Welcome back, {{ user && user.displayName ? user.displayName : 'Signed in User' }}</h1>
     </header>
+    <div class="flex justify-center mt-8">
+      <PopCountCard />
+    </div>
   </div>
 </template>
 

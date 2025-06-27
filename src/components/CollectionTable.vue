@@ -9,6 +9,7 @@ import { IconField } from 'primevue'
 import { InputIcon } from 'primevue'
 import Button from 'primevue/button'
 import AddPopDialog from '@/components/AddPopDialog.vue'
+import EditPopDialog from '@/components/EditPopDialog.vue'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
@@ -19,7 +20,9 @@ const user = ref(null)
 const selectedFunkos = ref([])
 const showAddDialog = ref(false)
 const showViewDialog = ref(false)
+const showEditDialog = ref(false)
 const viewedFunko = ref(null)
+const editingFunko = ref(null)
 const toast = useToast()
 const confirm = useConfirm()
 
@@ -90,8 +93,9 @@ onMounted(() => {
 const exportCSV = () => {
   dt.value.exportCSV()
 }
-const editFunko = (funko) => {
-  // Open your edit dialog (implement as needed)
+function editFunko(funko) {
+  editingFunko.value = funko
+  showEditDialog.value = true
 }
 async function deleteFunko(funko) {
   if (!user.value) return
@@ -126,6 +130,10 @@ function viewFunko(funko) {
   viewedFunko.value = funko
   showViewDialog.value = true
 }
+
+function handlePopEdited() {
+  refreshCollection()
+}
 </script>
 
 <template>
@@ -154,6 +162,12 @@ function viewFunko(funko) {
         <div class="mb-3 text-xl"><span class="font-semibold">ID:</span> {{ viewedFunko.id }}</div>
       </div>
     </Dialog>
+    <EditPopDialog
+      v-model:visible="showEditDialog"
+      :funko="editingFunko"
+      :userId="user && user.uid ? user.uid : ''"
+      @pop-edited="handlePopEdited"
+    />
     <div class="card">
       <DataTable
         ref="dt"

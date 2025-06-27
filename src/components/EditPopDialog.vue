@@ -1,15 +1,77 @@
 <script setup>
-import { ref, watch } from 'vue'
-import { auth, db } from '../firebase.js'
-import { onAuthStateChanged } from 'firebase/auth'
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { ref, watch, computed } from 'vue'
+import { db } from '../firebase.js'
+import { doc, updateDoc } from 'firebase/firestore'
 import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
+import AutoComplete from 'primevue/autocomplete'
 
 const props = defineProps({
   visible: Boolean,
+  funko: Object,
+  userId: String,
 })
-const emit = defineEmits(['update:visible', 'pop-added'])
+const emit = defineEmits(['update:visible', 'pop-edited'])
+
+const funkoName = ref('')
+const funkoTitle = ref('')
+const funkoSeries = ref('')
+const funkoImage = ref('')
+const funkoID = computed(() => props.funko?.id || '')
+const imageFileName = ref('')
+const toast = useToast()
+const localVisible = ref(props.visible)
+
+watch(
+  () => props.visible,
+  (val) => {
+    localVisible.value = val
+  },
+)
+watch(localVisible, (val) => {
+  if (!val) emit('update:visible', false)
+})
+
+const handleImageUpload = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    imageFileName.value = file.name
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      funkoImage.value = e.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+const saveEdit = async () => {
+  if (!props.userId || !funkoID.value) return
+  try {
+    // Update user subcollection
+    await updateDoc(doc(db, 'users', props.userId, 'funkos', funkoID.value), {
+      name: funkoName.value,
+      title: funkoTitle.value,
+      series: funkoSeries.value,
+      image: funkoImage.value,
+    })
+    // Update global FunkoPops
+    await updateDoc(doc(db, 'FunkoPops', funkoID.value), {
+      name: funkoName.value,
+      title: funkoTitle.value,
+      series: funkoSeries.value,
+    })
+    toast.add({ severity: 'success', summary: 'Updated', detail: 'Funko Pop updated!', life: 3000 })
+    emit('pop-edited')
+    emit('update:visible', false)
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to update Funko Pop.',
+      life: 3000,
+    })
+  }
+}
 
 const seriesOptions = [
   '8-Bit',
@@ -120,105 +182,11 @@ const seriesOptions = [
   'WWE Covers',
   'Zodiac',
 ]
-
-const toast = useToast()
-const funkoImage = ref('')
 const seriesSuggestions = ref([])
-const selectedSeries = ref('')
-const user = ref(null)
-const funkoName = ref('')
-const funkoTitle = ref('')
-const funkoID = ref('')
-const error = ref('')
-const success = ref('')
-const imageFileName = ref('')
-const localVisible = ref(props.visible)
-
-onAuthStateChanged(auth, (firebaseUser) => {
-  user.value = firebaseUser
-})
-
-const handleImageUpload = (event) => {
-  const file = event.target.files[0]
-  if (file) {
-    imageFileName.value = file.name
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      funkoImage.value = e.target.result
-    }
-    reader.readAsDataURL(file)
-  } else {
-    imageFileName.value = ''
-    funkoImage.value = ''
-  }
-}
 
 const search = (event) => {
   const query = event.query.toLowerCase()
   seriesSuggestions.value = seriesOptions.filter((option) => option.toLowerCase().includes(query))
-}
-
-const resetForm = () => {
-  funkoName.value = ''
-  funkoTitle.value = ''
-  selectedSeries.value = ''
-  funkoID.value = ''
-  funkoImage.value = ''
-  error.value = ''
-  success.value = ''
-}
-
-watch(
-  () => props.visible,
-  (val) => {
-    localVisible.value = val
-  },
-)
-watch(localVisible, (val) => {
-  if (!val) emit('update:visible', false)
-})
-
-const addFunkoPop = async () => {
-  if (!user.value) {
-    error.value = 'You must be signed in.'
-    return
-  }
-  try {
-    const funkoDocRef = doc(db, 'FunkoPops', funkoID.value)
-    const funkoDocSnap = await getDoc(funkoDocRef)
-    if (!funkoDocSnap.exists()) {
-      await setDoc(funkoDocRef, {
-        name: funkoName.value,
-        title: funkoTitle.value,
-        series: selectedSeries.value || '',
-        id: funkoID.value,
-        createdAt: new Date(),
-      })
-    }
-    const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', funkoID.value)
-    const userFunkoSnap = await getDoc(userFunkoRef)
-    if (userFunkoSnap.exists()) {
-      const prevQty = userFunkoSnap.data().quantity || 1
-      await updateDoc(userFunkoRef, {
-        quantity: prevQty + 1,
-        lastAddedAt: new Date(),
-        image: funkoImage.value || '',
-      })
-    } else {
-      await setDoc(userFunkoRef, {
-        quantity: 1,
-        addedAt: new Date(),
-        image: funkoImage.value || '',
-      })
-    }
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Funko Pop added!', life: 3000 })
-    emit('pop-added')
-    emit('update:visible', false)
-    resetForm()
-  } catch (e) {
-    error.value = 'Failed to add Funko Pop.'
-    success.value = ''
-  }
 }
 </script>
 
@@ -226,15 +194,15 @@ const addFunkoPop = async () => {
   <Dialog
     v-model:visible="localVisible"
     modal
-    header="Add a Funko Pop"
+    header="Edit Funko Pop"
     :style="{ width: '400px' }"
     @hide="localVisible.value = false"
   >
-    <form @submit.prevent="addFunkoPop" class="flex flex-col gap-4">
+    <form @submit.prevent="saveEdit" class="flex flex-col gap-4">
       <input v-model="funkoName" placeholder="Name" class="p-2 border rounded" required />
       <input v-model="funkoTitle" placeholder="Title" class="p-2 border rounded" required />
       <AutoComplete
-        v-model="selectedSeries"
+        v-model="funkoSeries"
         :suggestions="seriesSuggestions"
         :dropdown="true"
         @complete="search"
@@ -242,16 +210,15 @@ const addFunkoPop = async () => {
         required
         class="dropdown-select"
       />
-      <input v-model="funkoID" placeholder="ID" class="p-2 border rounded" required />
       <div>
         <label
-          for="funko-image-upload"
+          for="edit-funko-image-upload"
           class="p-2 border rounded cursor-pointer bg-gray-100 hover:bg-gray-200 block text-center"
         >
           {{ imageFileName || 'Upload Image' }}
         </label>
         <input
-          id="funko-image-upload"
+          id="edit-funko-image-upload"
           type="file"
           accept="image/*"
           @change="handleImageUpload"
@@ -261,8 +228,6 @@ const addFunkoPop = async () => {
       <div v-if="funkoImage" class="mt-2">
         <img :src="funkoImage" alt="Preview" class="w-24 h-24 object-cover rounded mx-auto" />
       </div>
-      <div v-if="error" class="text-red-600">{{ error }}</div>
-      <div v-if="success" class="text-green-600">{{ success }}</div>
       <div class="flex justify-end gap-2">
         <button type="button" class="p-2 rounded border" @click="emit('update:visible', false)">
           Cancel
@@ -272,7 +237,7 @@ const addFunkoPop = async () => {
           class="p-2 text-white rounded"
           style="background: var(--p-button-primary-background)"
         >
-          Add
+          Save
         </button>
       </div>
     </form>
