@@ -66,13 +66,24 @@ const handleSignOut = () => {
           </RouterLink>
         </div>
 
+        <div class="margin-vertical">
+          <RouterLink
+            to="/favorites"
+            class="flex nav-link text-xl items-center"
+            active-class="router-link-active"
+          >
+            <i class="pi pi-heart pr-3 w-3 nav-icon"></i>
+            <span class="ml-2 flex-1">Favorites</span>
+          </RouterLink>
+        </div>
+
         <!-- Add more links as needed here -->
 
         <!-- Spacer pushes the button down-->
         <div class="flex-1"></div>
 
         <div>
-          <button @click="handleSignOut" class="flex-1 nav-link">Sign Out</button>
+          <button @click="handleSignOut" class="flex-1 nav-linkg">Sign Out</button>
         </div>
       </nav>
     </div>

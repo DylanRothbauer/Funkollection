@@ -20,17 +20,24 @@ onMounted(() => {
   onAuthStateChanged(auth, async (firebaseUser) => {
     if (firebaseUser) {
       const userFunkosSnapshot = await getDocs(collection(db, 'users', firebaseUser.uid, 'funkos'))
-      const seriesCount = {}
+      const popIds = []
       userFunkosSnapshot.forEach((docSnap) => {
-        const data = docSnap.data()
-        const series = data.series && data.series.trim() ? data.series : 'No Series'
-        seriesCount[series] = (seriesCount[series] || 0) + 1
+        popIds.push(docSnap.id)
       })
+      const categoryCount = {}
+      for (const popId of popIds) {
+        const popDoc = await getDocs(collection(db, 'FunkoPops'))
+        // Find the pop with the matching id
+        const popData = popDoc.docs.find((doc) => doc.id === popId)?.data()
+        const series =
+          popData && popData.series && popData.series.trim() ? popData.series.trim() : 'No Series'
+        categoryCount[series] = (categoryCount[series] || 0) + 1
+      }
       // Sort by count descending, show top 6, group rest as 'Other'
-      const sorted = Object.entries(seriesCount).sort((a, b) => b[1] - a[1])
+      const sorted = Object.entries(categoryCount).sort((a, b) => b[1] - a[1])
       const top = sorted.slice(0, 6)
       const otherCount = sorted.slice(6).reduce((sum, [, count]) => sum + count, 0)
-      const labels = top.map(([series]) => series)
+      const labels = top.map(([category]) => category)
       if (otherCount > 0) labels.push('Other')
       const data = top.map(([, count]) => count)
       if (otherCount > 0) data.push(otherCount)

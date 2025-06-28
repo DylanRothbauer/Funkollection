@@ -4,6 +4,7 @@ import { auth } from '../firebase.js'
 import { onAuthStateChanged } from 'firebase/auth'
 import PopCountCard from '../components/PopCountCard.vue'
 import PopCategoryBreakdownCard from '../components/PopCategoryBreakdownCard.vue'
+import BadgesCard from '../components/BadgesCard.vue'
 const user = ref(null)
 
 onMounted(() => {
@@ -18,9 +19,10 @@ onMounted(() => {
     <header class="flex items-center justify-between p-4" style="background-color: white">
       <h1>Welcome back, {{ user && user.displayName ? user.displayName : 'Signed in User' }}</h1>
     </header>
-    <div class="flex justify-center mt-8">
+    <div class="flex justify-center mt-8 gap-6">
       <PopCountCard />
       <PopCategoryBreakdownCard />
+      <BadgesCard />
     </div>
   </div>
 </template>

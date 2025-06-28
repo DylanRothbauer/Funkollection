@@ -1,6 +1,15 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { collection, getDocs, doc, getDoc, deleteDoc } from 'firebase/firestore'
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  deleteDoc,
+  setDoc,
+  deleteField,
+  updateDoc,
+} from 'firebase/firestore'
 import { db } from '@/firebase'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { FilterMatchMode } from '@primevue/core/api'
@@ -25,6 +34,7 @@ const viewedFunko = ref(null)
 const editingFunko = ref(null)
 const toast = useToast()
 const confirm = useConfirm()
+const favorites = ref([])
 
 async function fetchFunkos() {
   if (!user.value) return
@@ -60,20 +70,56 @@ async function fetchFunkos() {
   funkos.value = funkoDetails
 }
 
+async function fetchFavorites() {
+  if (!user.value) return
+  const favSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'favorites'))
+  favorites.value = favSnapshot.docs.map((doc) => doc.id)
+}
+
+async function toggleFavorite(funko) {
+  if (!user.value) return
+  const favRef = doc(db, 'users', user.value.uid, 'favorites', funko.id)
+  if (favorites.value.includes(funko.id)) {
+    await deleteDoc(favRef)
+    favorites.value = favorites.value.filter((id) => id !== funko.id)
+    toast.add({
+      severity: 'info',
+      summary: 'Removed from Favorites',
+      detail: funko.name || funko.title,
+      life: 2000,
+    })
+  } else {
+    await setDoc(favRef, { addedAt: new Date().toISOString() })
+    favorites.value.push(funko.id)
+    toast.add({
+      severity: 'success',
+      summary: 'Added to Favorites',
+      detail: funko.name || funko.title,
+      life: 2000,
+    })
+  }
+}
+
 onMounted(() => {
   const auth = getAuth()
   onAuthStateChanged(auth, async (firebaseUser) => {
     user.value = firebaseUser
     if (user.value) {
       await fetchFunkos()
+      await fetchFavorites()
     }
   })
   loading.value = false
 })
 
-function refreshCollection() {
-  fetchFunkos()
+function isFavorite(funko) {
+  return favorites.value.includes(funko.id)
 }
+
+onMounted(() => {
+  // ...your existing Firestore fetch logic...
+  loading.value = false
+})
 
 const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -84,11 +130,6 @@ const filters = ref({
 })
 const loading = ref(true)
 const dt = ref()
-
-onMounted(() => {
-  // ...your existing Firestore fetch logic...
-  loading.value = false
-})
 
 const exportCSV = () => {
   dt.value.exportCSV()
@@ -102,7 +143,7 @@ async function deleteFunko(funko) {
   try {
     await deleteDoc(doc(db, 'users', user.value.uid, 'funkos', funko.id))
     toast.add({ severity: 'success', summary: 'Deleted', detail: 'Funko Pop deleted!', life: 3000 })
-    refreshCollection()
+    await fetchFunkos() // Ensure table updates after delete
   } catch (e) {
     toast.add({
       severity: 'error',
@@ -240,6 +281,17 @@ function handlePopEdited() {
                 rounded
                 severity="danger"
                 @click="confirmDeleteFunko(slotProps.data)"
+              />
+              <Button
+                :icon="isFavorite(slotProps.data) ? 'pi pi-heart-fill' : 'pi pi-heart'"
+                rounded
+                outlined
+                severity="help"
+                class="mr-1"
+                @click="toggleFavorite(slotProps.data)"
+                :aria-label="
+                  isFavorite(slotProps.data) ? 'Remove from Favorites' : 'Add to Favorites'
+                "
               />
             </div>
           </template>
