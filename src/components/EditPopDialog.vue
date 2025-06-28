@@ -31,6 +31,19 @@ watch(
 watch(localVisible, (val) => {
   if (!val) emit('update:visible', false)
 })
+watch(
+  [() => props.visible, () => props.funko],
+  ([visible, funko]) => {
+    if (visible && funko) {
+      funkoName.value = funko.name || ''
+      funkoTitle.value = funko.title || ''
+      funkoSeries.value = funko.series || ''
+      funkoImage.value = funko.image || ''
+      imageFileName.value = ''
+    }
+  },
+  { immediate: true },
+)
 
 const handleImageUpload = (event) => {
   const file = event.target.files[0]

@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { auth } from '../firebase.js'
 import { onAuthStateChanged } from 'firebase/auth'
 import PopCountCard from '../components/PopCountCard.vue'
+import PopCategoryBreakdownCard from '../components/PopCategoryBreakdownCard.vue'
 const user = ref(null)
 
 onMounted(() => {
@@ -19,6 +20,7 @@ onMounted(() => {
     </header>
     <div class="flex justify-center mt-8">
       <PopCountCard />
+      <PopCategoryBreakdownCard />
     </div>
   </div>
 </template>

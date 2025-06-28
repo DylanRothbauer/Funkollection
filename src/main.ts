@@ -28,6 +28,7 @@ import AutoComplete from 'primevue/autocomplete'
 import Toast from 'primevue/toast'
 import ToastService from 'primevue/toastservice'
 import ConfirmationService from 'primevue/confirmationservice'
+import Chart from 'primevue/chart'
 
 const app = createApp(App)
 
@@ -47,6 +48,7 @@ app.component('ColumnGroup', ColumnGroup)
 app.component('Row', Row)
 app.component('AutoComplete', AutoComplete)
 app.component('Toast', Toast)
+app.component('Chart', Chart)
 
 app.use(ToastService)
 app.use(ConfirmationService)
