@@ -14,49 +14,48 @@ As a Funko Pop collector, I realized there’s a Pop for everything I love — f
 
 - 📦 Add, edit, and remove Pops from your collection  
 - 🧮 Filter, search, and sort your collection by franchise, exclusivity, or ID  
-- 🧾 View total collection stats (planned)  
+- 🧾 View collection stats (estimated value, total count, activity charts, etc.)
 - 🌐 Responsive landing page with sections: About, Features, FAQ, Contact  
 - 🎨 Styled with Tailwind CSS + PrimeVue components  
 - 💬 FAQ section and About section included  
-- 🔐 Authentication-ready (planned)
+- 🔐 Google Authentication (Firebase)
 
 ---
 
 ## 🧰 Tech Stack
 
-- **Frontend Framework:** Vue 3 + Vite  
+- **Frontend Framework:** Vue js + Vite  
 - **Styling:** Tailwind CSS, PrimeVue  
-- **State Management:** Vue's built-in reactivity (Pinia or Vuex optional)  
-- **Routing:** Vue Router (if multi-page)  
-- **Backend:** (Planned) Node.js/Express + MongoDB or Firebase  
-- **Version Control:** Git + Bitbucket  
+- **State Management:** Vue's built-in reactivity
+- **Routing:** Vue Router
+- **Backend:** (Planned) Firebase  
+- **Version Control:** Git + GitHub  
 
 ---
 
-## 📸 Screenshots
+## 📸 Screenshots (Work-In Progress!)
 
-| Landing Page | Collection Table |
-|--------------|------------------|
-| ![Landing Page](./images/homeDemo.png) | ![Table Demo](./images/tableDemo.png) |
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/cf50df23-27f5-4f89-956f-7f2cf3df9e6b" width="450"/></td>
+    <td><img src="https://github.com/user-attachments/assets/58948751-1ef9-4b02-8445-6e3abbb0014d" width="450"/></td>
+    <td><img src="https://github.com/user-attachments/assets/bf193ac0-9935-4251-949a-9fea1dae4ea9" width="450"/></td>
+  </tr>
+</table>
 
 ---
 
 ## 🚧 In Progress
 
-- 🔒 User login and sign-up system  
 - 📥 Pop wishlist  
-- 💸 Estimated value tracker  
-- 🧠 Duplicate detection  
-- 📱 Mobile-first refinements  
-- 🔁 Barcode scanning & auto-fill integration  
+- 📱 Mobile-first refinements
+- 💳 Stripe Monetization (planned)
 
 ---
 
 ## 🐞 Known Bugs
 
-- ❗ Pop images sometimes fail to load (CORS issue with test API)  
-- 🧩 Responsive table overflow on smaller devices (WIP fix)  
-- 🔍 Search occasionally returns inconsistent results (improving fuzzy logic)  
+- Some mobile responsive layout bugs remain
 
 ---
 
