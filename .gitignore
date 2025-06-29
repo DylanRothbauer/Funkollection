@@ -31,3 +31,5 @@ coverage
 
 # Firebase AUTH
 src/firebase.js
+
+.firebase
