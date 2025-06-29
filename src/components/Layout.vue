@@ -83,7 +83,13 @@ const handleSignOut = () => {
         <div class="flex-1"></div>
 
         <div>
-          <button @click="handleSignOut" class="flex-1 nav-linkg">Sign Out</button>
+          <button
+            @click="handleSignOut"
+            class="flex nav-link text-xl items-center justify-center signout-btn"
+          >
+            <i class="pi pi-sign-out pr-3 w-3 nav-icon"></i>
+            <span class="ml-2 flex-1">Sign Out</span>
+          </button>
         </div>
       </nav>
     </div>
@@ -133,5 +139,23 @@ const handleSignOut = () => {
 
 .nav-icon {
   font-size: 2rem !important;
+}
+
+.signout-btn {
+  width: 100%;
+  color: #e3342f;
+  background: transparent;
+  border-radius: 0.375rem;
+  font-weight: bold;
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  transition:
+    color 0.2s,
+    background 0.2s;
+  border: none;
+}
+.signout-btn:hover {
+  color: #fff;
+  background: #e3342f;
 }
 </style>

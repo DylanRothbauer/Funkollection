@@ -38,11 +38,11 @@ const favorites = ref([])
 
 async function fetchFunkos() {
   if (!user.value) return
-  // 1. Get all Funko docs from the user's subcollection (to get image)
+  // 1. Get all Funko docs from the user's subcollection (to get image and purchasePrice)
   const userFunkosSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
   const userFunkos = userFunkosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
 
-  // 2. Fetch each FunkoPop's details from the global FunkoPops collection and merge image from user doc
+  // 2. Fetch each FunkoPop's details from the global FunkoPops collection and merge image and purchasePrice from user doc
   const funkoDetails = await Promise.all(
     userFunkos.map(async (userFunko) => {
       const funkoDoc = await getDoc(doc(db, 'FunkoPops', userFunko.id))
@@ -54,6 +54,7 @@ async function fetchFunkos() {
           title: data.title || '',
           series: data.series || '',
           image: userFunko.image || '',
+          purchasePrice: userFunko.purchasePrice !== undefined ? userFunko.purchasePrice : '',
           ...data,
         }
       } else {
@@ -63,6 +64,7 @@ async function fetchFunkos() {
           title: '',
           series: '',
           image: userFunko.image || '',
+          purchasePrice: userFunko.purchasePrice !== undefined ? userFunko.purchasePrice : '',
         }
       }
     }),
@@ -201,6 +203,11 @@ function handlePopEdited() {
           <span class="font-semibold">Series:</span> {{ viewedFunko.series }}
         </div>
         <div class="mb-3 text-xl"><span class="font-semibold">ID:</span> {{ viewedFunko.id }}</div>
+        <div class="mb-3 text-xl" v-if="viewedFunko.purchasePrice !== undefined">
+          <span class="font-semibold">Purchase Price:</span> ${{
+            Number(viewedFunko.purchasePrice).toFixed(2)
+          }}
+        </div>
       </div>
     </Dialog>
     <EditPopDialog

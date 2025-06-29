@@ -6,13 +6,25 @@ import { db } from '@/firebase'
 
 const user = ref(null)
 const popCount = ref(0)
+const totalValue = ref(0)
 const loading = ref(true)
 
+const badgeBgColor = '#ffd700' // gold for pop count
+const valueBadgeBgColor = '#34d399' // green for value
+
 const badgeLevels = [
-  { min: 1, name: 'Pop Collector', desc: 'Added your first Pop!', color: '#cd7f32', icon: '🥉' },
-  { min: 10, name: 'Pop Collector', desc: 'Own 10+ Pops', color: '#bfc1c2', icon: '🥈' },
-  { min: 50, name: 'Pop Collector', desc: 'Own 50+ Pops', color: '#ffd700', icon: '🥇' },
-  { min: 100, name: 'Pop Collector', desc: 'Own 100+ Pops', color: '#e5e4e2', icon: '🏆' },
+  { min: 1, name: 'Pop Collector', desc: 'Added your first Pop!', icon: '🥉' },
+  { min: 10, name: 'Pop Collector', desc: 'Own 10+ Pops', icon: '🥈' },
+  { min: 50, name: 'Pop Collector', desc: 'Own 50+ Pops', icon: '🥇' },
+  { min: 100, name: 'Pop Collector', desc: 'Own 100+ Pops', icon: '🏆' },
+]
+
+const valueBadgeLevels = [
+  { min: 0, name: 'Value Collector', desc: 'Start your collection!', icon: '🧾' },
+  { min: 100, name: 'Value Collector', desc: 'Spent $100+', icon: '💵' },
+  { min: 500, name: 'Value Collector', desc: 'Spent $500+', icon: '💰' },
+  { min: 1000, name: 'Value Collector', desc: 'Spent $1,000+', icon: '🤑' },
+  { min: 5000, name: 'Value Collector', desc: 'Spent $5,000+', icon: '🏦' },
 ]
 
 const badge = computed(() => {
@@ -30,6 +42,21 @@ const badge = computed(() => {
   return { ...current, level, next }
 })
 
+const valueBadge = computed(() => {
+  const value = totalValue.value
+  let current = valueBadgeLevels[0]
+  let next = null
+  let level = 1
+  for (let i = 0; i < valueBadgeLevels.length; i++) {
+    if (value >= valueBadgeLevels[i].min) {
+      current = valueBadgeLevels[i]
+      level = i + 1
+      next = valueBadgeLevels[i + 1] || null
+    }
+  }
+  return { ...current, level, next }
+})
+
 const progress = computed(() => {
   const count = popCount.value
   const currentLevel = badge.value
@@ -40,6 +67,16 @@ const progress = computed(() => {
   return Math.min(1, (count - prevMin) / (nextMin - prevMin))
 })
 
+const valueProgress = computed(() => {
+  const value = totalValue.value
+  const currentLevel = valueBadge.value
+  const nextLevel = currentLevel.next
+  if (!nextLevel) return 1
+  const prevMin = currentLevel.min
+  const nextMin = nextLevel.min
+  return Math.min(1, (value - prevMin) / (nextMin - prevMin))
+})
+
 onMounted(() => {
   const auth = getAuth()
   onAuthStateChanged(auth, async (firebaseUser) => {
@@ -47,6 +84,14 @@ onMounted(() => {
     if (user.value) {
       const userFunkosSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
       popCount.value = userFunkosSnapshot.size
+      // Calculate total value
+      let value = 0
+      userFunkosSnapshot.forEach((docSnap) => {
+        const data = docSnap.data()
+        const qty = data.quantity || 1
+        value += (parseFloat(data.purchasePrice) || 0) * qty
+      })
+      totalValue.value = value
     }
     loading.value = false
   })
@@ -65,9 +110,9 @@ onMounted(() => {
         v-if="badge"
         class="badge"
         :style="{
-          background: badge.color,
-          color: badge.color === '#bfc1c2' ? '#222' : '#fff',
-          border: badge.color === '#e5e4e2' ? '2px solid #a3a3a3' : 'none',
+          background: badgeBgColor,
+          color: '#222',
+          border: badge.level === badgeLevels.length ? '2px solid #a3a3a3' : 'none',
         }"
       >
         <div class="badge-content">
@@ -75,18 +120,54 @@ onMounted(() => {
           <div class="badge-title">{{ badge.name }}</div>
           <div class="badge-level">Lv.{{ badge.level }}</div>
           <div class="badge-desc">{{ badge.desc }}</div>
-          <div v-if="badge.next" class="progress-bar-container">
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill" :style="{ width: progress * 100 + '%' }"></div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-bg" :class="{ 'progress-bar-max': !badge.next }">
+              <div
+                class="progress-bar-fill"
+                :class="{ 'progress-bar-max-fill': !badge.next }"
+                :style="{ width: progress * 100 + '%' }"
+              ></div>
             </div>
             <div class="progress-label text-xs mt-1">
-              {{ popCount }} / {{ badge.next.min }} Pops to next level
+              <template v-if="badge.next">
+                {{ popCount }} / {{ badge.next.min }} Pops to next level
+              </template>
+              <template v-else> Max Level! </template>
             </div>
           </div>
-          <div v-else class="progress-label text-xs mt-2">Max Level!</div>
         </div>
       </div>
-      <div v-else class="text-gray-400 w-full text-center mt-2">
+      <div
+        class="badge"
+        :style="{
+          background: valueBadgeBgColor,
+          color: '#222',
+          border: valueBadge.level === valueBadgeLevels.length ? '2px solid #065f46' : 'none',
+        }"
+      >
+        <div class="badge-content">
+          <div class="badge-icon">{{ valueBadge.icon }}</div>
+          <div class="badge-title">{{ valueBadge.name }}</div>
+          <div class="badge-level">Lv.{{ valueBadge.level }}</div>
+          <div class="badge-desc">{{ valueBadge.desc }}</div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-bg" :class="{ 'progress-bar-max': !valueBadge.next }">
+              <div
+                class="progress-bar-fill"
+                :class="{ 'progress-bar-max-fill': !valueBadge.next }"
+                :style="{ width: valueProgress * 100 + '%' }"
+              ></div>
+            </div>
+            <div class="progress-label text-xs mt-1">
+              <template v-if="valueBadge.next">
+                ${{ totalValue.toFixed(0) }} / ${{ valueBadge.next.min }} to next level
+              </template>
+              <template v-else> Max Level! </template>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="!badge && !valueBadge" class="text-gray-400 w-full text-center mt-2">
         No badges yet. Start collecting!
       </div>
     </div>
@@ -101,6 +182,13 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid #ececec;
   margin-bottom: 1.5rem;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+.dashboard-card:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px) scale(1.02);
 }
 .dashboard-card-header {
   border-bottom: 1px solid #ececec;
@@ -156,19 +244,26 @@ onMounted(() => {
 }
 .progress-bar-bg {
   width: 100%;
-  height: 8px;
+  height: 14px;
   background: #e5e7eb;
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
+  border: 1.5px solid #bdbdbd;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+  transition: background 0.3s;
 }
 .progress-bar-fill {
   height: 100%;
   background: #4ade80;
-  border-radius: 4px 0 0 4px;
-  transition: width 0.4s cubic-bezier(0.4, 2, 0.6, 1);
+  border-radius: 6px 0 0 6px;
+  transition:
+    width 0.4s cubic-bezier(0.4, 2, 0.6, 1),
+    background 0.3s;
 }
-.progress-label {
-  text-align: center;
-  color: #444;
+.progress-bar-max {
+  background: #d1d5db !important;
+}
+.progress-bar-max-fill {
+  background: #a3a3a3 !important;
 }
 </style>

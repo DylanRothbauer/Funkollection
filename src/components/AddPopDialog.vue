@@ -129,6 +129,7 @@ const user = ref(null)
 const funkoName = ref('')
 const funkoTitle = ref('')
 const funkoID = ref('')
+const purchasePrice = ref('')
 const error = ref('')
 const success = ref('')
 const imageFileName = ref('')
@@ -166,6 +167,7 @@ const resetForm = () => {
   funkoImage.value = ''
   error.value = ''
   success.value = ''
+  purchasePrice.value = ''
 }
 
 watch(
@@ -197,18 +199,21 @@ const addFunkoPop = async () => {
     }
     const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', funkoID.value)
     const userFunkoSnap = await getDoc(userFunkoRef)
+    const price = parseFloat(purchasePrice.value) || 0
     if (userFunkoSnap.exists()) {
       const prevQty = userFunkoSnap.data().quantity || 1
       await updateDoc(userFunkoRef, {
         quantity: prevQty + 1,
         lastAddedAt: new Date(),
         image: funkoImage.value || '',
+        purchasePrice: price,
       })
     } else {
       await setDoc(userFunkoRef, {
         quantity: 1,
         addedAt: new Date(),
         image: funkoImage.value || '',
+        purchasePrice: price,
       })
     }
     toast.add({ severity: 'success', summary: 'Success', detail: 'Funko Pop added!', life: 3000 })
@@ -243,6 +248,14 @@ const addFunkoPop = async () => {
         class="dropdown-select"
       />
       <input v-model="funkoID" placeholder="ID" class="p-2 border rounded" required />
+      <input
+        v-model="purchasePrice"
+        type="number"
+        min="0"
+        step="1"
+        placeholder="Purchase Price ($)"
+        class="p-2 border rounded"
+      />
       <div>
         <label
           for="funko-image-upload"

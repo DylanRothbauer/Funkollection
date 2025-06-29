@@ -70,7 +70,7 @@ onMounted(() => {
     class="pop-category-card shadow rounded-lg bg-white flex flex-col items-center justify-center py-8 px-6"
     style="min-width: 320px; min-height: 340px"
   >
-    <div class="text-lg font-semibold text-gray-400 mb-4" style="letter-spacing: 0.03em">
+    <div class="font-semibold text-lg text-gray-500 mb-4" style="letter-spacing: 0.03em">
       Top Categories
     </div>
     <div v-if="loading" class="text-2xl text-gray-400">...</div>
@@ -85,7 +85,7 @@ onMounted(() => {
       <div
         v-for="(label, i) in chartData.labels"
         :key="label"
-        class="flex items-center gap-2 mb-1 text-sm"
+        class="flex items-center gap-2 mb-1 text-base"
       >
         <span
           :style="{
@@ -96,18 +96,31 @@ onMounted(() => {
             borderRadius: '3px',
           }"
         ></span>
-        <span>{{ label }}</span>
-        <span class="ml-2 font-bold">{{ chartData.datasets[0].data[i] }}</span>
+        <span class="font-semibold text-gray-700">{{ label }}</span>
+        <span class="ml-2 font-extrabold text-gray-900 text-lg">{{
+          chartData.datasets[0].data[i]
+        }}</span>
       </div>
+      <div class="text-lg text-gray-600 mt-2">Breakdown of your collection by series</div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .pop-category-card {
-  transition: box-shadow 0.2s;
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #ececec;
+  margin-bottom: 1.5rem;
+  min-width: 320px;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
 }
 .pop-category-card:hover {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px) scale(1.02);
 }
 </style>

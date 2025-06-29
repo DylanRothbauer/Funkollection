@@ -33,6 +33,7 @@ async function fetchFavorites() {
           title: userData.title || data.title || '',
           series: userData.series || data.series || '',
           image: userData.image || data.image || '',
+          purchasePrice: userData.purchasePrice !== undefined ? userData.purchasePrice : '',
         }
       } else {
         return { id, name: '', title: '', series: '', image: '' }
@@ -116,6 +117,11 @@ onMounted(() => {
           <span class="font-semibold">Series:</span> {{ viewedFunko.series }}
         </div>
         <div class="mb-3 text-xl"><span class="font-semibold">ID:</span> {{ viewedFunko.id }}</div>
+        <div class="mb-3 text-xl" v-if="viewedFunko.purchasePrice !== undefined">
+          <span class="font-semibold">Purchase Price:</span> ${{
+            Number(viewedFunko.purchasePrice).toFixed(2)
+          }}
+        </div>
       </div>
     </Dialog>
   </div>

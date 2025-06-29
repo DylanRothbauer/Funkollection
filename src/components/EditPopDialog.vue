@@ -21,6 +21,7 @@ const funkoID = computed(() => props.funko?.id || '')
 const imageFileName = ref('')
 const toast = useToast()
 const localVisible = ref(props.visible)
+const purchasePrice = ref('')
 
 watch(
   () => props.visible,
@@ -40,6 +41,8 @@ watch(
       funkoSeries.value = funko.series || ''
       funkoImage.value = funko.image || ''
       imageFileName.value = ''
+      purchasePrice.value =
+        funko.purchasePrice !== undefined && funko.purchasePrice !== null ? funko.purchasePrice : ''
     }
   },
   { immediate: true },
@@ -59,30 +62,33 @@ const handleImageUpload = (event) => {
 
 const saveEdit = async () => {
   if (!props.userId || !funkoID.value) return
+  let success = false
   try {
-    // Update user subcollection
     await updateDoc(doc(db, 'users', props.userId, 'funkos', funkoID.value), {
       name: funkoName.value,
       title: funkoTitle.value,
       series: funkoSeries.value,
       image: funkoImage.value,
+      purchasePrice: parseFloat(purchasePrice.value) || 0,
     })
-    // Update global FunkoPops
     await updateDoc(doc(db, 'FunkoPops', funkoID.value), {
       name: funkoName.value,
       title: funkoTitle.value,
       series: funkoSeries.value,
     })
+    success = true
     toast.add({ severity: 'success', summary: 'Updated', detail: 'Funko Pop updated!', life: 3000 })
     emit('pop-edited')
     emit('update:visible', false)
   } catch (e) {
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: 'Failed to update Funko Pop.',
-      life: 3000,
-    })
+    if (!success && localVisible.value) {
+      toast.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Failed to update Funko Pop.',
+        life: 3000,
+      })
+    }
   }
 }
 
@@ -241,6 +247,15 @@ const search = (event) => {
       <div v-if="funkoImage" class="mt-2">
         <img :src="funkoImage" alt="Preview" class="w-24 h-24 object-cover rounded mx-auto" />
       </div>
+      <input v-model="funkoID" placeholder="ID" class="p-2 border rounded" required />
+      <input
+        v-model="purchasePrice"
+        type="number"
+        min="0"
+        step="1"
+        placeholder="Purchase Price ($)"
+        class="p-2 border rounded"
+      />
       <div class="flex justify-end gap-2">
         <button type="button" class="p-2 rounded border" @click="emit('update:visible', false)">
           Cancel
