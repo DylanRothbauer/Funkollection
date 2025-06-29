@@ -1,13 +1,10 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { getAuth, onAuthStateChanged } from 'firebase/auth'
-import { collection, getDocs } from 'firebase/firestore'
-import { db } from '@/firebase'
+import { computed } from 'vue'
 
-const user = ref(null)
-const popCount = ref(0)
-const totalValue = ref(0)
-const loading = ref(true)
+const props = defineProps({
+  funkos: { type: Array, required: true },
+  loading: { type: Boolean, required: true },
+})
 
 const badgeBgColor = '#ffd700' // gold for pop count
 const valueBadgeBgColor = '#34d399' // green for value
@@ -26,6 +23,14 @@ const valueBadgeLevels = [
   { min: 1000, name: 'Value Collector', desc: 'Spent $1,000+', icon: '🤑' },
   { min: 5000, name: 'Value Collector', desc: 'Spent $5,000+', icon: '🏦' },
 ]
+
+const popCount = computed(() => props.funkos.length)
+const totalValue = computed(() => {
+  return props.funkos.reduce((sum, pop) => {
+    const qty = pop.quantity || 1
+    return sum + (parseFloat(pop.purchasePrice) || 0) * qty
+  }, 0)
+})
 
 const badge = computed(() => {
   const count = popCount.value
@@ -76,26 +81,6 @@ const valueProgress = computed(() => {
   const nextMin = nextLevel.min
   return Math.min(1, (value - prevMin) / (nextMin - prevMin))
 })
-
-onMounted(() => {
-  const auth = getAuth()
-  onAuthStateChanged(auth, async (firebaseUser) => {
-    user.value = firebaseUser
-    if (user.value) {
-      const userFunkosSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
-      popCount.value = userFunkosSnapshot.size
-      // Calculate total value
-      let value = 0
-      userFunkosSnapshot.forEach((docSnap) => {
-        const data = docSnap.data()
-        const qty = data.quantity || 1
-        value += (parseFloat(data.purchasePrice) || 0) * qty
-      })
-      totalValue.value = value
-    }
-    loading.value = false
-  })
-})
 </script>
 
 <template>
@@ -104,7 +89,7 @@ onMounted(() => {
       <span class="text-2xl mr-2">🏅</span>
       <span class="font-semibold text-lg tracking-wide text-gray-500">Badges</span>
     </div>
-    <div v-if="loading" class="p-4 text-center text-gray-500">Loading badges...</div>
+    <div v-if="props.loading" class="p-4 text-center text-gray-500">Loading badges...</div>
     <div v-else class="flex flex-wrap gap-5">
       <div
         v-if="badge"

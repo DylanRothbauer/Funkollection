@@ -1,23 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { collection, getDocs } from 'firebase/firestore'
-import { db, auth } from '../firebase.js'
-import { onAuthStateChanged } from 'firebase/auth'
+import { computed } from 'vue'
 
-const popCount = ref(0)
-const user = ref(null)
-const loading = ref(true)
-
-onMounted(() => {
-  onAuthStateChanged(auth, async (firebaseUser) => {
-    user.value = firebaseUser
-    if (user.value) {
-      const userFunkosSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
-      popCount.value = userFunkosSnapshot.size
-    }
-    loading.value = false
-  })
+const props = defineProps({
+  funkos: { type: Array, required: true },
+  loading: { type: Boolean, required: true },
 })
+
+const popCount = computed(() => props.funkos.length)
 </script>
 
 <template>
@@ -29,7 +18,7 @@ onMounted(() => {
       Collection Size
     </div>
     <div class="text-6xl font-extrabold mb-2" style="color: var(--funkollection-secondary)">
-      {{ loading ? '...' : popCount }}
+      {{ props.loading ? '...' : popCount }}
     </div>
     <div class="text-lg text-gray-600">Number of Funko Pops you own</div>
   </div>

@@ -1,16 +1,24 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { getAuth, onAuthStateChanged } from 'firebase/auth'
-import { collection, getDocs } from 'firebase/firestore'
-import { db } from '@/firebase'
+import { ref, watch } from 'vue'
 import { Line } from 'vue-chartjs'
-import { Chart, LineElement, CategoryScale, LinearScale, Tooltip, Legend, Title } from 'chart.js'
+import {
+  Chart,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+  Title,
+} from 'chart.js'
 
-Chart.register(LineElement, CategoryScale, LinearScale, Tooltip, Legend, Title)
+Chart.register(LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend, Title)
 
-const user = ref(null)
-const loading = ref(true)
-const allPops = ref([])
+const props = defineProps({
+  funkos: { type: Array, required: true },
+  loading: { type: Boolean, required: true },
+})
+
 const currentYear = new Date().getFullYear()
 const selectedYear = ref(currentYear)
 const chartData = ref({ labels: [], datasets: [] })
@@ -25,7 +33,6 @@ function groupByMonth(pops, year) {
       } else {
         date = new Date(pop.addedAt)
       }
-      console.log('Pop addedAt:', pop.addedAt, 'Parsed date:', date)
       if (date.getFullYear() === year) {
         months[date.getMonth()]++
       }
@@ -34,29 +41,8 @@ function groupByMonth(pops, year) {
   return months
 }
 
-async function fetchPops() {
-  loading.value = true
-  const auth = getAuth()
-  onAuthStateChanged(auth, async (firebaseUser) => {
-    user.value = firebaseUser
-    if (user.value) {
-      const snapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
-      const pops = []
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data()
-        pops.push(data)
-      })
-      allPops.value = pops
-      console.log('Fetched pops:', pops)
-      updateChart()
-    }
-    loading.value = false
-  })
-}
-
 function updateChart() {
-  const months = groupByMonth(allPops.value, selectedYear.value)
-  console.log('Months array for year', selectedYear.value, months)
+  const months = groupByMonth(props.funkos, selectedYear.value)
   chartData.value = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [
@@ -75,6 +61,8 @@ function updateChart() {
   }
 }
 
+watch([() => props.funkos, selectedYear], updateChart, { immediate: true })
+
 const chartOptions = {
   responsive: true,
   plugins: { legend: { display: false } },
@@ -91,9 +79,6 @@ const chartOptions = {
     },
   },
 }
-
-onMounted(fetchPops)
-watch(selectedYear, updateChart)
 </script>
 
 <template>

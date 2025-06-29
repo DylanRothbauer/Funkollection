@@ -1,33 +1,23 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { collection, getDocs } from 'firebase/firestore'
-import { db, auth } from '../firebase.js'
-import { onAuthStateChanged } from 'firebase/auth'
+import { computed } from 'vue'
 
-const loading = ref(true)
-const totalPurchase = ref(0)
+const props = defineProps({
+  funkos: { type: Array, required: true },
+  loading: { type: Boolean, required: true },
+})
 
-onMounted(() => {
-  onAuthStateChanged(auth, async (firebaseUser) => {
-    if (firebaseUser) {
-      const userFunkosSnapshot = await getDocs(collection(db, 'users', firebaseUser.uid, 'funkos'))
-      let purchase = 0
-      userFunkosSnapshot.forEach((docSnap) => {
-        const data = docSnap.data()
-        const qty = data.quantity || 1
-        purchase += (parseFloat(data.purchasePrice) || 0) * qty
-      })
-      totalPurchase.value = purchase
-    }
-    loading.value = false
-  })
+const totalPurchase = computed(() => {
+  return props.funkos.reduce((sum, pop) => {
+    const qty = pop.quantity || 1
+    return sum + (parseFloat(pop.purchasePrice) || 0) * qty
+  }, 0)
 })
 </script>
 
 <template>
   <div class="dashboard-card flex flex-col items-center justify-center">
     <div class="font-semibold text-lg text-gray-500 mb-2">Collection Value</div>
-    <div v-if="loading" class="text-gray-400 text-xl">Loading...</div>
+    <div v-if="props.loading" class="text-gray-400 text-xl">Loading...</div>
     <div v-else class="w-full flex flex-col items-center gap-2">
       <div class="text-6xl font-extrabold mb-2" style="color: var(--funkollection-secondary)">
         ${{ totalPurchase.toFixed(2) }}
