@@ -75,12 +75,9 @@ const faqs = [
         style="padding-right: 0rem"
       >
         <div
-          class="gradient-circle absolute w-96 h-96 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-yellow-300"
+          class="gradient-circle absolute rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-yellow-300"
         ></div>
-        <img
-          class="pop-img relative w-96 h-96 object-contain z-10"
-          src="../assets/img/funkoPop_Flash.png"
-        />
+        <img class="pop-img relative object-contain z-10" src="../assets/img/funkoPop_Flash.png" />
       </div>
     </div>
 
@@ -98,7 +95,7 @@ const faqs = [
         />
       </div>
       <!-- Right column: horizontal row inside -->
-      <div class="flex-1 flex flex-row gap-x-4">
+      <div class="flex-1 flex flex-row gap-x-4" id="features-icons">
         <div class="flex-col flex-1 flex items-center justify-center">
           <i
             class="pi pi-box feature-icon bg-gradient-to-r from-purple-400 to-pink-600 text-transparent bg-clip-text"
@@ -378,6 +375,81 @@ const faqs = [
   padding-right: 12rem;
 }
 
+@media (max-width: 1800px) {
+  .gradient-circle {
+    width: 22rem !important;
+    height: 22rem !important;
+  }
+
+  .pop-img {
+    width: 32rem !important;
+    height: 32rem !important;
+  }
+}
+
+@media (max-width: 1400px) {
+  .gradient-circle {
+    width: 20rem !important;
+    height: 20rem !important;
+  }
+
+  .pop-img {
+    /* This wont increase size*/
+    width: 72rem !important;
+    height: 72rem !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  .main-div {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .gradient-circle {
+    width: 16rem !important;
+    height: 16rem !important;
+  }
+  .pop-img {
+    width: 32rem !important;
+    height: 32rem !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .pop-img,
+  .gradient-circle {
+    display: none !important;
+  }
+
+  .main-div {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .main-div {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .pop-img {
+    display: none !important;
+  }
+  .gradient-circle {
+    display: none !important;
+  }
+
+  #features.section-div {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2rem !important;
+  }
+  #features-icons {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+}
+
 .landing-header {
   display: flex;
   justify-content: space-between;
@@ -448,8 +520,8 @@ const faqs = [
 }
 
 .pop-img {
-  width: 42rem;
-  height: 42rem;
+  width: 37rem;
+  height: 37rem;
 }
 
 .star {
