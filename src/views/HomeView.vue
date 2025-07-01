@@ -43,6 +43,8 @@ const faqs = [
       'Once you’re signed in, you can use the “Add Pop” button to enter details like name, category, number, tile, and more!',
   },
   // Add more FAQs as needed
+
+  // Test for stats
 ]
 </script>
 
