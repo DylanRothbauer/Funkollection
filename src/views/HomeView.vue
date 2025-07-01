@@ -89,7 +89,7 @@ const faqs = [
           class="gradient-circle absolute w-95 h-95 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-yellow-300"
         ></div>
         <img
-          class="relative w-95 h-95 object-contain z-10"
+          class="relative w-95 h-95 object-contain z-10 pop-img-obi"
           src="../assets/img/funkoPop_Obi.png"
           style="width: 27rem; height: 30rem"
         />
@@ -432,7 +432,8 @@ const faqs = [
     padding-left: 0 !important;
     padding-right: 0 !important;
   }
-  .pop-img {
+  .pop-img,
+  .pop-img-obi {
     display: none !important;
   }
   .gradient-circle {
@@ -441,12 +442,33 @@ const faqs = [
 
   #features.section-div {
     flex-direction: column !important;
-    align-items: center !important;
+    align-items: flex-start !important;
     gap: 2rem !important;
   }
   #features-icons {
     flex-direction: column !important;
     align-items: center !important;
+  }
+  #features-icons > .flex-col {
+    align-items: center !important;
+  }
+  #features-icons .feature-text {
+    text-align: left !important;
+  }
+
+  .feature-icon {
+    text-align: right !important;
+  }
+
+  #features {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    align-items: flex-start !important;
+    align-content: flex-start !important;
+  }
+
+  .section-div {
+    margin-left: 0 !important;
   }
 }
 
