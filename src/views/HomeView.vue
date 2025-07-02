@@ -470,6 +470,18 @@ const faqs = [
   .section-div {
     margin-left: 0 !important;
   }
+
+  #about.section-div {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2rem !important;
+  }
+
+  #about.h1 {
+  }
+
+  #about.p {
+  }
 }
 
 .landing-header {
