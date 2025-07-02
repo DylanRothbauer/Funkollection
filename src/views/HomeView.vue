@@ -578,6 +578,4 @@ const faqs = [
 .footer-link:hover {
   text-decoration: underline;
 }
-
-/*Test for Stats*/
 </style>
