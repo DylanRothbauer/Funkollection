@@ -473,4 +473,6 @@ const faqs = [
 .footer-link:hover {
   text-decoration: underline;
 }
+
+/*Only works for main???*/
 </style>
