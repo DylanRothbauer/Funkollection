@@ -483,6 +483,26 @@ const faqs = [
     max-width: 80% !important;
     width: 100% !important;
   }
+
+  #about .about {
+    width: 100% !important;
+    max-width: 80% !important;
+    overflow-x: visible !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+  }
+  #about .about .w-80,
+  #about .about img {
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+  #about .p-carousel {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: visible !important;
+  }
 }
 
 .landing-header {
