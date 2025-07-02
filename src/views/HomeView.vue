@@ -477,10 +477,11 @@ const faqs = [
     gap: 2rem !important;
   }
 
-  #about.h1 {
-  }
-
-  #about.p {
+  #about .home-text {
+    white-space: normal !important;
+    line-height: 1.5 !important;
+    max-width: 80% !important;
+    width: 100% !important;
   }
 }
 
