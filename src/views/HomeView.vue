@@ -11,13 +11,16 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const singInWithGoogle = () => {
+const signInWithGoogle = () => {
   signInWithPopup(getAuth(), provider)
     .then((result) => {
       console.log(result.user)
       router.push('/dashboard')
     })
-    .catch((error) => {})
+    .catch((error) => {
+      console.error(error)
+      // Optionally show an error message to the user
+    })
 }
 
 const images = [
@@ -51,12 +54,10 @@ const faqs = [
     <div class="app-name">Funkollection</div>
     <div class="auth-links">
       <!-- <a href="#" @click.prevent="signInWithGoogle" class="signin">Sign In with Google</a> -->
-      <router-link to="/dashboard" @click="singInWithGoogle" class="signin"
-        >Sign In with Google</router-link
-      >
+      <a @click="signInWithGoogle" class="signin">Sign In with Google</a>
     </div>
   </header>
-  <main class="main-div w-screen h-screen">
+  <main class="main-div h-screen">
     <!-- Title -->
     <!-- Left Column-->
     <div class="section-div flex" id="home">
@@ -162,7 +163,8 @@ const faqs = [
         Testimonials
       </h1>
     </div>
-    <div class="section-div flex">
+    <!-- Trying to make this flex-1 on small screens-->
+    <div class="section-div flex" id="testimonials-cards">
       <div class="flex-col flex-1">
         <Card style="width: 25rem; overflow: hidden">
           <template #header>
@@ -256,14 +258,14 @@ const faqs = [
     </div>
 
     <!-- CTA -->
-    <div class="section-div flex">
+    <div class="section-div flex" id="cta">
       <div class="flex-col flex-1">
         <div class="flex-1 flex flex-col gap-y-4 relative flex items-left justify-center">
           <div
             class="gradient-circle absolute w-95 h-95 rounded-full bg-gradient-to-br from-purple-400 via-pink-400 to-yellow-300"
           ></div>
           <img
-            class="relative w-95 h-95 object-contain z-10"
+            class="relative w-95 h-95 object-contain z-10 cta-pop-img"
             src="../assets/img/funkoPop_Obi.png"
             style="width: 27rem; height: 30rem"
           />
@@ -373,6 +375,7 @@ const faqs = [
   margin-right: 12rem;
   padding-left: 12rem;
   padding-right: 12rem;
+  width: 100%;
 }
 
 @media (max-width: 1800px) {
@@ -424,12 +427,21 @@ const faqs = [
   .main-div {
     padding-left: 0 !important;
     padding-right: 0 !important;
+    width: 100vh !important;
   }
 }
 
 @media (max-width: 700px) {
+  #app {
+    padding: 0 !important;
+  }
+
+  .home-text {
+    max-width: 80%;
+  }
+
   .main-div {
-    padding-left: 0 !important;
+    padding-left: 50px !important;
     padding-right: 0 !important;
   }
   .pop-img,
@@ -438,6 +450,123 @@ const faqs = [
   }
   .gradient-circle {
     display: none !important;
+  }
+
+  #features.section-div {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2rem !important;
+  }
+  #features-icons {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  #features-icons > .flex-col {
+    align-items: center !important;
+  }
+  #features-icons .feature-text {
+    text-align: left !important;
+  }
+
+  .feature-icon {
+    text-align: right !important;
+  }
+
+  #features {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    align-items: flex-start !important;
+    align-content: flex-start !important;
+  }
+
+  .section-div {
+    margin-left: 0 !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 50% !important;
+  }
+
+  #about.section-div {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2rem !important;
+  }
+
+  #about .about {
+    overflow-x: visible !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+  }
+  #about .about .w-80,
+  #about .about img {
+    max-width: 80vw !important;
+    max-height: 220px !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 auto !important;
+  }
+  #about .p-carousel {
+    max-width: 90vw !important;
+    width: 90vw !important;
+  }
+
+  #testimonials > h1 {
+    flex: 1 1 0% !important;
+  }
+
+  #testimonials-cards {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2rem !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    width: 40% !important;
+    max-width: 100vw !important;
+  }
+
+  .testimonials-flex-1 {
+    flex: 1 1 0% !important;
+  }
+
+  #testimonials + .section-div.flex {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2rem !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  #testimonials + .section-div.flex > .flex-col {
+    width: 100% !important;
+    max-width: 300px !important;
+    margin: 0 auto !important;
+    align-items: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+  }
+  #testimonials + .section-div.flex .p-card {
+    max-width: 90vw !important;
+    width: 90vw !important;
+    padding: 0.7rem 0.3rem 0.7rem 0.3rem !important;
+    font-size: 0.95rem !important;
+  }
+  #testimonials + .section-div.flex .p-card img {
+    max-width: 60vw !important;
+    max-height: 120px !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 auto 0.5rem auto !important;
+    display: block !important;
+  }
+
+  #faq > h1 {
+    flex: 1 1 0% !important;
+  }
+
+  #cta {
+    flex: 1 1 0% !important;
   }
 
   #features.section-div {
@@ -493,15 +622,105 @@ const faqs = [
   }
   #about .about .w-80,
   #about .about img {
-    width: 100% !important;
-    max-width: 100vw !important;
+    max-width: 80vw !important;
+    max-height: 220px !important;
+    width: auto !important;
     height: auto !important;
-    object-fit: contain !important;
+    margin: 0 auto !important;
   }
   #about .p-carousel {
+    max-width: 90vw !important;
+    width: 90vw !important;
+  }
+
+  #testimonials + .section-div.flex {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2rem !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  #testimonials + .section-div.flex > .flex-col {
     width: 100% !important;
-    max-width: 100vw !important;
-    overflow-x: visible !important;
+    max-width: 300px !important;
+    margin: 0 auto !important;
+    align-items: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+  }
+  #testimonials + .section-div.flex .p-card {
+    max-width: 90vw !important;
+    width: 90vw !important;
+    padding: 0.7rem 0.3rem 0.7rem 0.3rem !important;
+    font-size: 0.95rem !important;
+  }
+  #testimonials + .section-div.flex .p-card img {
+    max-width: 60vw !important;
+    max-height: 120px !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 auto 0.5rem auto !important;
+    display: block !important;
+  }
+
+  footer .section-div.flex {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2rem !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  footer .section-div.flex > .flex-col.flex-1 {
+    width: 100% !important;
+    max-width: 350px !important;
+    margin: 0 auto !important;
+    align-items: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.2rem !important;
+    text-align: center !important;
+  }
+  footer .section-div.flex .flex-row {
+    justify-content: center !important;
+  }
+
+  .landing-header {
+    padding: 0.7rem 1rem 0.7rem 1rem !important;
+    min-height: 48px !important;
+  }
+  .app-name {
+    font-size: 1.2rem !important;
+    padding: 0 !important;
+  }
+  .auth-links {
+    gap: 0.5rem !important;
+  }
+  .auth-links a.signin {
+    font-size: 0.95rem !important;
+    padding: 0.4rem 0.8rem !important;
+    border-radius: 3px !important;
+    min-width: unset !important;
+    height: auto !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+  }
+
+  .cta-pop-img {
+    display: none !important;
+  }
+
+  .p-accordionpanel > .p-accordionheader {
+    max-width: 80% !important;
+    width: 100%;
+  }
+  .p-accordionpanel.p-accordiontab-active > .p-accordionheader {
+    max-width: 80% !important;
+    width: 100%;
+  }
+
+  .p-accordioncontent-content > p {
+    max-width: 70% !important;
   }
 }
 
