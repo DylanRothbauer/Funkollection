@@ -1,161 +1,143 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { RouterLink, RouterView } from 'vue-router'
+import { ref, onMounted } from 'vue'
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'
-import { useRouter } from 'vue-router'
 import router from '@/router'
 
 const isLoggedIn = ref(false)
+const isMenuOpen = ref(false) // 👈 controls hamburger menu
+
 let auth
 
 onMounted(() => {
   auth = getAuth()
   onAuthStateChanged(auth, (user) => {
-    if (user) {
-      isLoggedIn.value = true
-    } else {
-      isLoggedIn.value = false
-    }
+    isLoggedIn.value = !!user
   })
 })
+
 const handleSignOut = () => {
   signOut(auth).then(() => {
     router.push('/')
   })
 }
+
+const handleNavClick = () => {
+  isMenuOpen.value = false
+}
 </script>
 
 <template>
-  <div class="flex w-screen h-screen">
-    <div class="flex nav-container">
-      <nav class="flex flex-col w-48">
-        <div>
-          <h1 class="playfair-display-hometitle nav-head font-bold text-3xl flex-1 items-center">
-            Funkollection
-          </h1>
-        </div>
-        <div class="margin-vertical">
-          <RouterLink
-            to="/dashboard"
-            class="flex nav-link text-xl items-center"
-            active-class="router-link-active"
-          >
-            <i class="pi pi-th-large pr-3 w-3 nav-icon"></i>
-            <span class="ml-2 flex-1">Dashboard</span>
-          </RouterLink>
-        </div>
-        <div class="margin-vertical">
-          <RouterLink
-            to="/collection"
-            class="flex nav-link text-xl items-center"
-            active-class="router-link-active"
-          >
-            <i class="pi pi-box pr-3 w-3 nav-icon"></i>
-            <span class="ml-2 flex-1">Collection</span>
-          </RouterLink>
-        </div>
+  <div class="flex flex-col md:flex-row h-screen w-screen">
+    <!-- Mobile Header -->
+    <header class="md:hidden flex items-center justify-between bg-primary text-white p-4">
+      <h1 class="text-2xl font-bold">Funkollection</h1>
+      <button @click="isMenuOpen = !isMenuOpen">
+        <i class="pi pi-bars text-3xl"></i>
+      </button>
+    </header>
 
-        <div class="margin-vertical">
-          <RouterLink
-            to="/about"
-            class="flex nav-link text-xl items-center"
-            active-class="router-link-active"
-          >
-            <i class="pi pi-box pr-3 w-3 nav-icon"></i>
-            <span class="ml-2 flex-1">About</span>
-          </RouterLink>
-        </div>
+    <!-- Sidebar Navigation -->
+    <nav
+      :class="[
+        'bg-primary text-white w-64 p-6 md:block',
+        isMenuOpen ? 'block' : 'hidden',
+        'md:h-full md:relative absolute z-50 top-0 left-0 h-screen',
+      ]"
+    >
+      <div class="mb-12 hidden md:block">
+        <h1 class="text-3xl font-bold">Funkollection</h1>
+      </div>
 
-        <div class="margin-vertical">
-          <RouterLink
-            to="/favorites"
-            class="flex nav-link text-xl items-center"
-            active-class="router-link-active"
-          >
-            <i class="pi pi-heart pr-3 w-3 nav-icon"></i>
-            <span class="ml-2 flex-1">Favorites</span>
-          </RouterLink>
-        </div>
+      <div class="space-y-4">
+        <RouterLink
+          to="/dashboard"
+          class="nav-link"
+          active-class="router-link-active"
+          @click="handleNavClick"
+        >
+          <i class="pi pi-th-large pr-3"></i> Dashboard
+        </RouterLink>
 
-        <!-- Add more links as needed here -->
+        <RouterLink
+          to="/collection"
+          class="nav-link"
+          active-class="router-link-active"
+          @click="handleNavClick"
+        >
+          <i class="pi pi-box pr-3"></i> Collection
+        </RouterLink>
 
-        <!-- Spacer pushes the button down-->
-        <div class="flex-1"></div>
+        <RouterLink
+          to="/about"
+          class="nav-link"
+          active-class="router-link-active"
+          @click="handleNavClick"
+        >
+          <i class="pi pi-info pr-3"></i> About
+        </RouterLink>
 
-        <div>
-          <button
-            @click="handleSignOut"
-            class="flex nav-link text-xl items-center justify-center signout-btn"
-          >
-            <i class="pi pi-sign-out pr-3 w-3 nav-icon"></i>
-            <span class="ml-2 flex-1">Sign Out</span>
-          </button>
-        </div>
-      </nav>
-    </div>
+        <RouterLink
+          to="/favorites"
+          class="nav-link"
+          active-class="router-link-active"
+          @click="handleNavClick"
+        >
+          <i class="pi pi-heart pr-3"></i> Favorites
+        </RouterLink>
+      </div>
 
-    <div class="flex-1 main-content">
+      <div class="mt-auto pt-8">
+        <button @click="handleSignOut" class="signout-btn">
+          <i class="pi pi-sign-out pr-3"></i> Sign Out
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 bg-background overflow-auto">
       <RouterView />
-    </div>
+    </main>
   </div>
 </template>
 
-<style>
-.nav-container {
-  padding-right: 2rem;
-  padding-left: 2rem;
-  text-align: center;
-  color: var(--funkollection-soft-white);
+<style scoped>
+.bg-primary {
   background-color: var(--funkollection-primary);
 }
 
-.nav-link {
-  margin: 1rem;
-}
-
-.nav-link:hover {
-  cursor: pointer;
-}
-
-.margin-vertical:has(.router-link-active) {
-  background-color: var(--funkollection-secondary);
-  font: bold;
-  border-radius: 0.375rem; /* rounded-md */
-}
-
-.main-content {
+.bg-background {
   background-color: var(--funkollection-background);
 }
 
-.margin-vertical {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
+.nav-link {
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  transition: background-color 0.2s ease;
 }
 
-.nav-head {
-  padding-top: 2rem;
-  padding-bottom: 4rem;
+.nav-link:hover {
+  background-color: var(--funkollection-secondary);
 }
 
-.nav-icon {
-  font-size: 2rem !important;
+.router-link-active {
+  background-color: var(--funkollection-secondary);
+  font-weight: bold;
 }
 
 .signout-btn {
-  width: 100%;
   color: #e3342f;
-  background: transparent;
-  border-radius: 0.375rem;
-  font-weight: bold;
-  margin: 1rem 0;
-  padding: 0.75rem 1rem;
+  background-color: transparent;
   transition:
-    color 0.2s,
-    background 0.2s;
-  border: none;
+    background-color 0.2s ease,
+    color 0.2s ease;
+  /* ... other styles ... */
 }
+
 .signout-btn:hover {
-  color: #fff;
-  background: #e3342f;
+  background-color: #e3342f;
+  color: white;
 }
 </style>

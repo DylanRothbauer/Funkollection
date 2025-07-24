@@ -12,7 +12,7 @@
 #app {
   max-width: 100%;
   margin: 0 auto;
-  padding: 3rem;
+  /* padding: 3rem; */
   font-weight: normal;
   background-color: white;
 }
@@ -30,9 +30,9 @@
   }
 }
 
-main {
+/* main {
   margin-top: 15rem;
-}
+} */
 
 html,
 body {

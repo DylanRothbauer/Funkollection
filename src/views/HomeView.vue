@@ -361,7 +361,7 @@ const faqs = [
   </main>
 </template>
 
-<style>
+<style scoped>
 .p-carousel-indicator-active .p-carousel-indicator-button {
   background: #00ff73 !important;
 }
@@ -378,6 +378,7 @@ const faqs = [
   padding-left: 12rem;
   padding-right: 12rem;
   width: 100%;
+  margin-top: 15rem !important;
 }
 
 @media (max-width: 1800px) {

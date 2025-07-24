@@ -33,4 +33,13 @@ const { user, funkos, loading, error, refresh } = useUserFunkos()
   margin-top: 2rem;
   margin-bottom: 2rem;
 }
+
+@media (max-width: 700px) {
+  .dashboard-cards-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+}
 </style>
