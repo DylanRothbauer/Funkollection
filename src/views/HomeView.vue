@@ -12,14 +12,28 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const signInWithGoogle = () => {
-  signInWithPopup(getAuth(), provider)
-    .then((result) => {
-      console.log(result.user)
+  signInWithPopup(auth, provider)
+    .then(async (result) => {
+      const user = result.user
+      console.log('User signed in:', user)
+
+      // Firestore user creation
+      const userRef = doc(db, 'users', user.uid)
+      const userSnap = await getDoc(userRef)
+
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          createdAt: serverTimestamp(),
+        })
+      }
+
       router.push('/dashboard')
     })
     .catch((error) => {
-      console.error(error)
-      // Optionally show an error message to the user
+      console.error('Sign in failed:', error)
     })
 }
 
