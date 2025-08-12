@@ -174,6 +174,32 @@ function viewFunko(funko) {
   showViewDialog.value = true
 }
 
+async function refreshCollection() {
+  loading.value = true
+  try {
+    await fetchFunkos()
+    await fetchFavorites()
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Failed to refresh collection',
+      life: 3000,
+    })
+  }
+  loading.value = false
+}
+
+onMounted(() => {
+  const auth = getAuth()
+  onAuthStateChanged(auth, async (firebaseUser) => {
+    user.value = firebaseUser
+    if (user.value) {
+      await refreshCollection()
+    }
+  })
+})
+
 function handlePopEdited() {
   refreshCollection()
 }

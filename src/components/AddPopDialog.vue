@@ -5,6 +5,8 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
+import { useUserFunkos } from '../composables/useUserFunkos'
+const { addFunkoPop } = useUserFunkos()
 
 const props = defineProps({
   visible: Boolean,
@@ -180,49 +182,22 @@ watch(localVisible, (val) => {
   if (!val) emit('update:visible', false)
 })
 
-const addFunkoPop = async () => {
-  if (!user.value) {
-    error.value = 'You must be signed in.'
-    return
-  }
+const addFunkoPopHandler = async () => {
   try {
-    const funkoDocRef = doc(db, 'FunkoPops', funkoID.value)
-    const funkoDocSnap = await getDoc(funkoDocRef)
-    if (!funkoDocSnap.exists()) {
-      await setDoc(funkoDocRef, {
-        name: funkoName.value,
-        title: funkoTitle.value,
-        series: selectedSeries.value || '',
-        id: funkoID.value,
-        createdAt: new Date(),
-      })
-    }
-    const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', funkoID.value)
-    const userFunkoSnap = await getDoc(userFunkoRef)
-    const price = parseFloat(purchasePrice.value) || 0
-    if (userFunkoSnap.exists()) {
-      const prevQty = userFunkoSnap.data().quantity || 1
-      await updateDoc(userFunkoRef, {
-        quantity: prevQty + 1,
-        lastAddedAt: new Date(),
-        image: funkoImage.value || '',
-        purchasePrice: price,
-      })
-    } else {
-      await setDoc(userFunkoRef, {
-        quantity: 1,
-        addedAt: new Date(),
-        image: funkoImage.value || '',
-        purchasePrice: price,
-      })
-    }
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Funko Pop added!', life: 3000 })
-    emit('pop-added')
+    await addFunkoPop({
+      id: funkoID.value,
+      name: funkoName.value,
+      title: funkoTitle.value,
+      series: selectedSeries.value,
+      image: funkoImage.value,
+      purchasePrice: parseFloat(purchasePrice.value) || 0,
+    })
+    toast.add({ severity: 'success', summary: 'Success', detail: 'Funko Pop added!' })
+    emit('pop-added') // in case parent wants to do something
     emit('update:visible', false)
     resetForm()
   } catch (e) {
-    error.value = 'Failed to add Funko Pop.'
-    success.value = ''
+    error.value = e.message || 'Failed to add Funko Pop.'
   }
 }
 </script>

@@ -4,37 +4,34 @@ import flashImg from '../assets/img/funkoPop_Flash.png'
 import obiImg from '../assets/img/funkoPop_Obi.png'
 
 import { auth, provider } from '../firebase.js'
-import { getAuth, signInWithPopup } from 'firebase/auth'
+import { getAuth, onAuthStateChanged, signInWithPopup } from 'firebase/auth'
 import { db } from '../firebase'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { setDoc, doc, serverTimestamp } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const signInWithGoogle = () => {
-  signInWithPopup(auth, provider)
-    .then(async (result) => {
-      const user = result.user
-      console.log('User signed in:', user)
+const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(getAuth(), provider)
+    const user = result.user
 
-      // Firestore user creation
-      const userRef = doc(db, 'users', user.uid)
-      const userSnap = await getDoc(userRef)
+    await setDoc(
+      doc(db, 'users', user.uid),
+      {
+        uid: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+        createdAt: serverTimestamp(),
+      },
+      { merge: true },
+    )
 
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          createdAt: serverTimestamp(),
-        })
-      }
-
-      router.push('/dashboard')
-    })
-    .catch((error) => {
-      console.error('Sign in failed:', error)
-    })
+    router.push('/dashboard')
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 const images = [
@@ -375,7 +372,7 @@ const faqs = [
   </main>
 </template>
 
-<style scoped>
+<style>
 .p-carousel-indicator-active .p-carousel-indicator-button {
   background: #00ff73 !important;
 }
@@ -392,7 +389,6 @@ const faqs = [
   padding-left: 12rem;
   padding-right: 12rem;
   width: 100%;
-  margin-top: 15rem !important;
 }
 
 @media (max-width: 1800px) {

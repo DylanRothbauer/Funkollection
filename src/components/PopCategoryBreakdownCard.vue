@@ -1,50 +1,60 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import Chart from 'primevue/chart'
+import { useUserFunkos } from '../composables/useUserFunkos'
 
-const props = defineProps({
-  funkos: { type: Array, required: true },
-  loading: { type: Boolean, required: true },
-})
+const { funkos, loading } = useUserFunkos() // use shared reactive funkos here
 
-const chartData = ref({ labels: [], datasets: [] })
-const chartOptions = ref({
-  plugins: {
-    legend: { display: false },
-    tooltip: { enabled: true },
-  },
-  responsive: true,
-  maintainAspectRatio: false,
-})
-
+const chartData = ref(null)
 const backgroundColors = [
-  '#7c3aed',
-  '#f59e42',
-  '#10b981',
-  '#f43f5e',
-  '#6366f1',
-  '#fbbf24',
-  '#a3a3a3',
+  '#3B82F6',
+  '#F97316',
+  '#EF4444',
+  '#10B981',
+  '#8B5CF6',
+  '#F59E0B',
+  '#6B7280',
 ]
+
+// Computed property to check if funkos exist and have items
+const hasFunkos = computed(() => Array.isArray(funkos?.value) && funkos.value.length > 0)
 
 function computeCategoryData() {
   const categoryCount = {}
-  props.funkos.forEach((pop) => {
-    let series = 'No Series'
+
+  funkos.value.forEach((pop) => {
+    let series = null
+
+    // Prefer series if valid non-empty string
     if (pop.series && pop.series.trim()) {
       series = pop.series.trim()
-    } else if (pop.category && pop.category.trim()) {
+    }
+    // fallback to category if series missing or empty
+    else if (pop.category && pop.category.trim()) {
       series = pop.category.trim()
     }
+
+    if (!series) {
+      console.warn('[CategoryBreakdown] Pop with missing series/category:', pop)
+      series = 'No Series'
+    }
+
     categoryCount[series] = (categoryCount[series] || 0) + 1
   })
+
+  // Sort by descending count
   const sorted = Object.entries(categoryCount).sort((a, b) => b[1] - a[1])
+
+  // Take top 6 categories and sum rest as 'Other'
   const top = sorted.slice(0, 6)
   const otherCount = sorted.slice(6).reduce((sum, [, count]) => sum + count, 0)
+
   const labels = top.map(([category]) => category)
   if (otherCount > 0) labels.push('Other')
+
   const data = top.map(([, count]) => count)
   if (otherCount > 0) data.push(otherCount)
+
   chartData.value = {
     labels,
     datasets: [
@@ -57,7 +67,14 @@ function computeCategoryData() {
   }
 }
 
-watch(() => props.funkos, computeCategoryData, { immediate: true })
+// Recompute whenever funkos updates
+watch(
+  funkos,
+  () => {
+    computeCategoryData()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -68,17 +85,19 @@ watch(() => props.funkos, computeCategoryData, { immediate: true })
     <div class="font-semibold text-lg text-gray-500 mb-4" style="letter-spacing: 0.03em">
       Top Categories
     </div>
-    <div v-if="props.loading" class="text-2xl text-gray-400">...</div>
+
+    <div v-if="loading" class="text-2xl text-gray-400">...</div>
+
     <template v-else>
-      <div v-if="!props.funkos.length" class="text-gray-400 text-lg">
-        No Pops in your collection yet.
-      </div>
+      <div v-if="!hasFunkos" class="text-gray-400 text-lg">No Pops in your collection yet.</div>
+
       <div
-        v-else-if="!chartData.labels.length || !chartData.datasets[0]?.data.some((v) => v > 0)"
+        v-else-if="!chartData?.labels?.length || !chartData.datasets[0]?.data.some((v) => v > 0)"
         class="text-gray-400 text-lg"
       >
         No category data available.
       </div>
+
       <template v-else>
         <Chart
           type="doughnut"

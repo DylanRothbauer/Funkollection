@@ -1,12 +1,10 @@
 <script setup>
 import { computed } from 'vue'
+import { useUserFunkos } from '../composables/useUserFunkos'
 
-const props = defineProps({
-  funkos: { type: Array, required: true },
-  loading: { type: Boolean, required: true },
-})
+const { funkos, loading } = useUserFunkos()
 
-const popCount = computed(() => props.funkos.length)
+const popCount = computed(() => funkos.value.length)
 </script>
 
 <template>
@@ -18,7 +16,7 @@ const popCount = computed(() => props.funkos.length)
       Collection Size
     </div>
     <div class="text-6xl font-extrabold mb-2" style="color: var(--funkollection-secondary)">
-      {{ props.loading ? '...' : popCount }}
+      {{ loading.value ? '...' : popCount }}
     </div>
     <div class="text-lg text-gray-600">Number of Funko Pops you own</div>
   </div>

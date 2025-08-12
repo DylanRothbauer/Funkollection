@@ -24,13 +24,17 @@ const valueBadgeLevels = [
   { min: 5000, name: 'Value Collector', desc: 'Spent $5,000+', icon: '🏦' },
 ]
 
-const popCount = computed(() => props.funkos.length)
+const popCount = computed(() => (props.funkos ? props.funkos.length : 0))
 const totalValue = computed(() => {
+  if (!props.funkos) return 0
   return props.funkos.reduce((sum, pop) => {
     const qty = pop.quantity || 1
     return sum + (parseFloat(pop.purchasePrice) || 0) * qty
   }, 0)
 })
+
+// Safe fallback for totalValue to avoid undefined errors
+const safeTotalValue = computed(() => Number(totalValue.value) || 0)
 
 const badge = computed(() => {
   const count = popCount.value
@@ -48,7 +52,7 @@ const badge = computed(() => {
 })
 
 const valueBadge = computed(() => {
-  const value = totalValue.value
+  const value = safeTotalValue.value
   let current = valueBadgeLevels[0]
   let next = null
   let level = 1
@@ -73,7 +77,7 @@ const progress = computed(() => {
 })
 
 const valueProgress = computed(() => {
-  const value = totalValue.value
+  const value = safeTotalValue.value
   const currentLevel = valueBadge.value
   const nextLevel = currentLevel.next
   if (!nextLevel) return 1
@@ -145,7 +149,7 @@ const valueProgress = computed(() => {
             </div>
             <div class="progress-label text-xs mt-1">
               <template v-if="valueBadge.next">
-                ${{ totalValue.toFixed(0) }} / ${{ valueBadge.next.min }} to next level
+                ${{ safeTotalValue.toFixed(0) }} / ${{ valueBadge.next.min }} to next level
               </template>
               <template v-else> Max Level! </template>
             </div>
@@ -235,7 +239,7 @@ const valueProgress = computed(() => {
   overflow: hidden;
   border: 1.5px solid #bdbdbd;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-  transition: background 0.3s;
+  transition: background-color 0.3s;
 }
 .progress-bar-fill {
   height: 100%;
@@ -243,7 +247,7 @@ const valueProgress = computed(() => {
   border-radius: 6px 0 0 6px;
   transition:
     width 0.4s cubic-bezier(0.4, 2, 0.6, 1),
-    background 0.3s;
+    background-color 0.3s;
 }
 .progress-bar-max {
   background: #d1d5db !important;

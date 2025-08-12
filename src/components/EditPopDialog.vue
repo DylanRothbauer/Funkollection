@@ -5,6 +5,8 @@ import { doc, updateDoc } from 'firebase/firestore'
 import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
 import AutoComplete from 'primevue/autocomplete'
+import { useUserFunkos } from '../composables/useUserFunkos'
+const { editFunkoPop } = useUserFunkos()
 
 const props = defineProps({
   visible: Boolean,
@@ -60,35 +62,21 @@ const handleImageUpload = (event) => {
   }
 }
 
-const saveEdit = async () => {
-  if (!props.userId || !funkoID.value) return
-  let success = false
+const saveEditHandler = async () => {
   try {
-    await updateDoc(doc(db, 'users', props.userId, 'funkos', funkoID.value), {
+    await editFunkoPop({
+      id: funkoID.value,
       name: funkoName.value,
       title: funkoTitle.value,
       series: funkoSeries.value,
       image: funkoImage.value,
       purchasePrice: parseFloat(purchasePrice.value) || 0,
     })
-    await updateDoc(doc(db, 'FunkoPops', funkoID.value), {
-      name: funkoName.value,
-      title: funkoTitle.value,
-      series: funkoSeries.value,
-    })
-    success = true
-    toast.add({ severity: 'success', summary: 'Updated', detail: 'Funko Pop updated!', life: 3000 })
+    toast.add({ severity: 'success', summary: 'Updated', detail: 'Funko Pop updated!' })
     emit('pop-edited')
     emit('update:visible', false)
   } catch (e) {
-    if (!success && localVisible.value) {
-      toast.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to update Funko Pop.',
-        life: 3000,
-      })
-    }
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to update Funko Pop.' })
   }
 }
 
