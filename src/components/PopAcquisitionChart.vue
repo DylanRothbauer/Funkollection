@@ -101,7 +101,7 @@ const chartOptions = {
 </script>
 
 <template>
-  <div class="dashboard-card">
+  <div class="pop-card">
     <div class="dashboard-card-header flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
         <span class="text-2xl">📈</span>
@@ -130,17 +130,6 @@ const chartOptions = {
 </template>
 
 <style scoped>
-.dashboard-card {
-  background: #fff;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #ececec;
-  margin-bottom: 1.5rem;
-  transition:
-    box-shadow 0.2s,
-    transform 0.2s;
-}
 .dashboard-card-header {
   border-bottom: 1px solid #ececec;
   padding-bottom: 0.5rem;

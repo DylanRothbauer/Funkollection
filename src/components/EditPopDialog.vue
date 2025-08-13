@@ -202,22 +202,52 @@ const search = (event) => {
     v-model:visible="localVisible"
     modal
     header="Edit Funko Pop"
-    :style="{ width: '400px' }"
+    :style="{ width: '500px' }"
     @hide="localVisible.value = false"
   >
-    <form @submit.prevent="saveEdit" class="flex flex-col gap-4">
-      <input v-model="funkoName" placeholder="Name" class="p-2 border rounded" required />
-      <input v-model="funkoTitle" placeholder="Title" class="p-2 border rounded" required />
-      <AutoComplete
-        v-model="funkoSeries"
-        :suggestions="seriesSuggestions"
-        :dropdown="true"
-        @complete="search"
-        placeholder="Select or type series"
-        required
-        class="dropdown-select"
-      />
-      <div>
+    <form @submit.prevent="saveEditHandler" class="flex flex-col gap-5">
+      <!-- Name -->
+      <div class="flex flex-col gap-1">
+        <label for="funko-name" class="text-sm font-medium text-gray-700">Name</label>
+        <input
+          id="funko-name"
+          v-model="funkoName"
+          placeholder="Name"
+          class="p-2 border rounded focus:ring-2 focus:ring-primary-400"
+          required
+        />
+      </div>
+
+      <!-- Title -->
+      <div class="flex flex-col gap-1">
+        <label for="funko-title" class="text-sm font-medium text-gray-700">Title</label>
+        <input
+          id="funko-title"
+          v-model="funkoTitle"
+          placeholder="Title"
+          class="p-2 border rounded focus:ring-2 focus:ring-primary-400"
+          required
+        />
+      </div>
+
+      <!-- Series -->
+      <div class="flex flex-col gap-1">
+        <label for="funko-series" class="text-sm font-medium text-gray-700">Series</label>
+        <AutoComplete
+          id="funko-series"
+          v-model="funkoSeries"
+          :suggestions="seriesSuggestions"
+          :dropdown="true"
+          @complete="search"
+          placeholder="Select or type series"
+          required
+          class="dropdown-select w-full"
+        />
+      </div>
+
+      <!-- Image Upload -->
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium text-gray-700">Image</label>
         <label
           for="edit-funko-image-upload"
           class="p-2 border rounded cursor-pointer bg-gray-100 hover:bg-gray-200 block text-center"
@@ -232,25 +262,52 @@ const search = (event) => {
           class="hidden"
         />
       </div>
-      <div v-if="funkoImage" class="mt-2">
-        <img :src="funkoImage" alt="Preview" class="w-24 h-24 object-cover rounded mx-auto" />
+
+      <!-- Image Preview -->
+      <div v-if="funkoImage" class="mt-2 flex justify-center">
+        <img :src="funkoImage" alt="Preview" class="w-28 h-28 object-cover rounded shadow" />
       </div>
-      <input v-model="funkoID" placeholder="ID" class="p-2 border rounded" required />
-      <input
-        v-model="purchasePrice"
-        type="number"
-        min="0"
-        step="1"
-        placeholder="Purchase Price ($)"
-        class="p-2 border rounded"
-      />
-      <div class="flex justify-end gap-2">
-        <button type="button" class="p-2 rounded border" @click="emit('update:visible', false)">
+
+      <!-- ID -->
+      <div class="flex flex-col gap-1">
+        <label for="funko-id" class="text-sm font-medium text-gray-700">ID</label>
+        <input
+          id="funko-id"
+          v-model="funkoID"
+          placeholder="ID"
+          class="p-2 border rounded focus:ring-2 focus:ring-primary-400"
+          required
+        />
+      </div>
+
+      <!-- Purchase Price -->
+      <div class="flex flex-col gap-1">
+        <label for="funko-price" class="text-sm font-medium text-gray-700"
+          >Purchase Price ($)</label
+        >
+        <input
+          id="funko-price"
+          v-model="purchasePrice"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="0.00"
+          class="p-2 border rounded focus:ring-2 focus:ring-primary-400"
+        />
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex justify-end gap-3 mt-4">
+        <button
+          type="button"
+          class="px-4 py-2 rounded border hover:bg-gray-100"
+          @click="emit('update:visible', false)"
+        >
           Cancel
         </button>
         <button
           type="submit"
-          class="p-2 text-white rounded"
+          class="px-4 py-2 text-white rounded"
           style="background: var(--p-button-primary-background)"
         >
           Save
