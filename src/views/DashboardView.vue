@@ -21,7 +21,6 @@ const { user, error } = useUserFunkos() // just for user display and error handl
     <div class="flex flex-wrap justify-center gap-8 px-4 py-8 dashboard-cards-container">
       <PopCountCard />
       <PopCategoryBreakdownCard />
-      <BadgesCard />
       <PopAcquisitionChart />
       <EstimatedValueCard />
     </div>

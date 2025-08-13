@@ -388,6 +388,7 @@ const faqs = [
   margin-right: 12rem;
   padding-left: 12rem;
   padding-right: 12rem;
+  padding-top: 15rem;
   width: 100%;
 }
 
@@ -400,6 +401,10 @@ const faqs = [
   .pop-img {
     width: 32rem !important;
     height: 32rem !important;
+  }
+
+  .main-div {
+    padding-top: 20rem !important;
   }
 }
 
