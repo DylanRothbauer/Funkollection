@@ -19,12 +19,12 @@ const router = createRouter({
       path: '/',
       component: Layout,
       children: [
-        {
-          path: 'about',
-          name: 'about',
-          component: AboutView,
-          meta: { requiresAuth: true },
-        },
+        // {
+        //   path: 'about',
+        //   name: 'about',
+        //   component: AboutView,
+        //   meta: { requiresAuth: true },
+        // },
         {
           path: 'dashboard',
           name: 'dashboard',
