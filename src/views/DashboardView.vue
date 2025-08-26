@@ -5,6 +5,8 @@ import PopCategoryBreakdownCard from '../components/PopCategoryBreakdownCard.vue
 import BadgesCard from '../components/BadgesCard.vue'
 import EstimatedValueCard from '../components/EstimatedValueCard.vue'
 import PopAcquisitionChart from '../components/PopAcquisitionChart.vue'
+import RecentAdditionsCard from '@/components/RecentAdditionsCard.vue'
+import MostValuablePopsCard from '@/components/MostValuablePopsCard.vue'
 
 const { user, error } = useUserFunkos() // just for user display and error handling
 </script>
@@ -23,6 +25,8 @@ const { user, error } = useUserFunkos() // just for user display and error handl
       <PopCategoryBreakdownCard />
       <PopAcquisitionChart />
       <EstimatedValueCard />
+      <RecentAdditionsCard />
+      <MostValuablePopsCard />
     </div>
 
     <div v-if="error" class="text-red-500">Error: {{ error.message }}</div>

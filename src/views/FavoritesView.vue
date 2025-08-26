@@ -129,7 +129,7 @@ onMounted(() => {
 
 <style scoped>
 .card {
-  background: var(--funkollection-background);
+  background: white;
   border-radius: 1rem;
   padding: 2rem;
   margin: 2rem auto;
