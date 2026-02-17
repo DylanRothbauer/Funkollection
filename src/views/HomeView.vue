@@ -3,9 +3,9 @@ import { ref } from 'vue'
 import flashImg from '../assets/img/funkoPop_Flash.png'
 import obiImg from '../assets/img/funkoPop_Obi.png'
 
-import { auth, provider } from '../firebase.js'
+import { auth, provider } from '@/firebase.js'
 import { getAuth, onAuthStateChanged, signInWithPopup } from 'firebase/auth'
-import { db } from '../firebase'
+import { db } from '@/firebase.js'
 import { setDoc, doc, serverTimestamp } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 
@@ -13,7 +13,7 @@ const router = useRouter()
 
 const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(getAuth(), provider)
+    const result = await signInWithPopup(auth, provider)
     const user = result.user
 
     await setDoc(

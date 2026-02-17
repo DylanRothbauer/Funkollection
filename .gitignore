@@ -29,7 +29,4 @@ coverage
 
 *.tsbuildinfo
 
-# Firebase AUTH
-src/firebase.js
-
-.firebase
+.env.local
