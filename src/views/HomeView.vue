@@ -28,7 +28,7 @@ const signInWithGoogle = async () => {
       { merge: true },
     )
 
-    router.push('/dashboard')
+    router.push('/about')
   } catch (error) {
     console.error(error)
   }

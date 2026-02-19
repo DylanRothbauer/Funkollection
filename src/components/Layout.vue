@@ -85,6 +85,13 @@ const closeMobileNav = () => {
           </button>
           <div class="flex flex-col flex-1 gap-2">
             <RouterLink
+              to="/about"
+              class="nav-link text-xl py-2"
+              @click="closeMobileNav"
+              active-class="router-link-active"
+              >About</RouterLink
+            >
+            <RouterLink
               to="/dashboard"
               class="nav-link text-xl py-2"
               @click="closeMobileNav"
@@ -98,13 +105,6 @@ const closeMobileNav = () => {
               active-class="router-link-active"
               >Collection</RouterLink
             >
-            <!-- <RouterLink
-              to="/about"
-              class="nav-link text-xl py-2"
-              @click="closeMobileNav"
-              active-class="router-link-active"
-              >About</RouterLink
-            > -->
             <RouterLink
               to="/favorites"
               class="nav-link text-xl py-2"
@@ -130,6 +130,16 @@ const closeMobileNav = () => {
           </div>
           <div class="margin-vertical">
             <RouterLink
+              to="/about"
+              class="flex nav-link text-xl items-center"
+              active-class="router-link-active"
+            >
+              <i class="pi pi-box pr-3 w-3 nav-icon"></i>
+              <span class="ml-2 flex-1">About</span>
+            </RouterLink>
+          </div>
+          <div class="margin-vertical">
+            <RouterLink
               to="/dashboard"
               class="flex nav-link text-xl items-center"
               active-class="router-link-active"
@@ -149,16 +159,7 @@ const closeMobileNav = () => {
             </RouterLink>
           </div>
 
-          <!-- <div class="margin-vertical">
-            <RouterLink
-              to="/about"
-              class="flex nav-link text-xl items-center"
-              active-class="router-link-active"
-            >
-              <i class="pi pi-box pr-3 w-3 nav-icon"></i>
-              <span class="ml-2 flex-1">About</span>
-            </RouterLink>
-          </div> -->
+
 
           <div class="margin-vertical">
             <RouterLink

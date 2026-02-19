@@ -17,6 +17,17 @@
   background-color: white;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #ffffff;
+    --color-background-soft: #f8f8f8;
+    --color-background-mute: #f0f0f0;
+    --color-heading: #111111;
+    --color-text: #000000;
+  }
+}
+
+
 @media (min-width: 1024px) {
   body {
     display: flex;
