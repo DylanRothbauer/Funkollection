@@ -172,6 +172,17 @@ const closeMobileNav = () => {
             </RouterLink>
           </div>
 
+          <div>
+            <RouterLink
+              to="/account"
+              class="flex nav-link text-xl items-center justify-center mb-4"
+              active-class="router-link-active"
+            >
+              <i class="pi pi-user pr-3 w-3 nav-icon"></i>
+              <span class="ml-2 flex-1">Account</span>
+            </RouterLink>
+          </div>
+
           <!-- Add more links as needed here -->
 
           <!-- Spacer pushes the button down-->

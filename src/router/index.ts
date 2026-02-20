@@ -6,6 +6,7 @@ import DashboardView from '@/views/DashboardView.vue'
 import CollectionView from '@/views/CollectionView.vue'
 import FavoritesView from '@/views/FavoritesView.vue'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
+import Account from '@/views/Account.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -43,6 +44,12 @@ const router = createRouter({
           component: FavoritesView,
           meta: { requiresAuth: true },
         },
+        {
+          path: 'account',
+          name: 'account',
+          component: Account,
+          meta: { requiresAuth: true },
+        }
       ],
     },
   ],
