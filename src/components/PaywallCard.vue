@@ -33,8 +33,14 @@ const fetchMembershipTier = async () => {
 // Stripe
 const upgradeToPremium = async () => {
   console.log('Upgrade to Premium clicked - Stripe integration coming soon')
-  // TODO: Implement Stripe payment flow
-}
+  const priceId = "price_1T2wICQ9qrN939D8gbFcPfPD";
+  try {
+    const checkoutUrl = await getCheckoutUrl(app, priceId);
+    window.location.href = checkoutUrl;
+  } catch (error) {
+    console.error('Error during upgrade:', error);
+  }
+};
 
 onMounted(() => {
   fetchMembershipTier()

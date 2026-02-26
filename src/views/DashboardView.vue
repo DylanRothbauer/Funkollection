@@ -15,6 +15,7 @@ import { useUserFunkos } from '../composables/useUserFunkos'
 import { useAuthUser } from '../composables/useAuthUser.js'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { app, auth } from '../firebase.js'
+import { getCheckoutUrl } from '../../stripePayment.js'
 
 const isLoadingUserData = ref(false) // Change to true when fetching user data
 const isPremium = ref(false) // Track if user is a premium member

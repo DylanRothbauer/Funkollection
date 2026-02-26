@@ -1,44 +1,61 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useAuthUser } from '../composables/useAuthUser.js'
-import { db } from '../firebase.js'
-import { doc, getDoc } from 'firebase/firestore'
 import Button from 'primevue/button'
+import { getCheckoutUrl, getPortalUrl } from '../../stripePayment.js'
+import { getPremiumStatus } from '../../getPremiumStatus.js'
+import { app } from '../firebase.js'
+import { getAuth } from 'firebase/auth'
 
 const { user } = useAuthUser()
-const membershipTier = ref('Standard Member')
-const isLoadingUserData = ref(true)
+const isPremium = ref(false)
+const isLoadingUserData = ref(false)
+const auth = getAuth(app)
 
 const upgradeToPremium = async () => {
-  console.log('Upgrade to Premium clicked - Stripe integration coming soon')
-  // TODO: Implement Stripe payment flow
+  try {
+    const priceId = "price_1T2wICQ9qrN939D8gbFcPfPD";
+    const checkoutUrl = await getCheckoutUrl(app, priceId);
+    window.location.href = checkoutUrl;
+  } catch (error) {
+    console.error('Error during upgrade:', error);
+  }
+};
+
+const manageSubscription = async () => {
+  try {
+    const portalUrl = await getPortalUrl(app);
+    window.location.href = portalUrl;
+  } catch (error) {
+    console.error('Error managing subscription:', error);
+  }
 }
 
-const manageSubscription = () => {
-  console.log('Manage Subscription clicked - functionality coming soon')
-}
-
-const fetchMembershipTier = async () => {
-  if (!user.value) return
+const checkPremiumStatus = async () => {
+  if (!auth.currentUser?.uid) return
 
   isLoadingUserData.value = true
   try {
-    const userDocRef = doc(db, 'users', user.value.uid)
-    const userDocSnap = await getDoc(userDocRef)
-
-    if (userDocSnap.exists()) {
-      const userData = userDocSnap.data()
-      membershipTier.value = userData.membershipTier || 'Standard Member'
-    }
+    const newPremiumStatus = await getPremiumStatus(app)
+    isPremium.value = newPremiumStatus
+    console.log('Premium status:', newPremiumStatus)
   } catch (error) {
-    console.error('Error fetching user membership:', error)
+    console.error('Error checking premium status:', error)
+    isPremium.value = false
   } finally {
     isLoadingUserData.value = false
   }
 }
 
+// Watch for user changes and check premium status
+watch(() => user.value, () => {
+  if (user.value) {
+    checkPremiumStatus()
+  }
+}, { deep: true })
+
 onMounted(() => {
-  fetchMembershipTier()
+  checkPremiumStatus()
 })
 </script>
 
@@ -48,7 +65,7 @@ onMounted(() => {
       <p style="color: black;">Loading account information...</p>
     </div>
 
-    <div v-else-if="membershipTier === 'Premium Member'" class="premium-content">
+    <div v-else-if="isPremium" class="premium-content">
       <div class="account-card">
         <i class="pi pi-check-circle premium-badge-icon"></i>
         <h2>{{ user?.displayName || user?.email }}</h2>
@@ -142,10 +159,17 @@ onMounted(() => {
 }
 
 .action-button {
+  background: var(--funkollection-secondary);
+  color: var(--funkollection-soft-white);
   width: 100%;
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
   margin-top: 1rem;
+}
+
+.action-button:hover {
+  background: var(--funkollection-primary) !important;
+  color: var(--funkollection-soft-white) !important;
 }
 
 .upgrade-button {
