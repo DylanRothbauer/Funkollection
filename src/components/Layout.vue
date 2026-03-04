@@ -129,14 +129,14 @@ const closeMobileNav = () => {
             <h1 class="sora nav-head font-bold text-3xl flex-1 items-center">Funkollection</h1>
           </div>
           <div class="margin-vertical">
-            <RouterLink
+            <!-- <RouterLink
               to="/about"
               class="flex nav-link text-xl items-center"
               active-class="router-link-active"
             >
               <i class="pi pi-box pr-3 w-3 nav-icon"></i>
               <span class="ml-2 flex-1">About</span>
-            </RouterLink>
+            </RouterLink> -->
           </div>
           <div class="margin-vertical">
             <RouterLink

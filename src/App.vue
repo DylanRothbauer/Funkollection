@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { computed } from 'vue'
+
+const route = useRoute()
+const isLegalPage = computed(() =>
+  ['/privacypolicy', '/termsofservice', '/aboutus'].includes(route.path)
+)
 </script>
 
 <template>
   <Toast />
-  <RouterView />
+  <div :class="{ 'app-layout': !isLegalPage }">
+    <RouterView />
+  </div>
 </template>
 
 <style scoped>

@@ -7,6 +7,9 @@ import CollectionView from '@/views/CollectionView.vue'
 import FavoritesView from '@/views/FavoritesView.vue'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import Account from '@/views/Account.vue'
+import PrivacyPolicy from '@/views/PrivacyPolicy.vue'
+import TermsOfService from '@/views/TermsOfService.vue'
+import AboutUs from '@/views/AboutUs.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,12 +23,12 @@ const router = createRouter({
       path: '/',
       component: Layout,
       children: [
-        {
-          path: 'about',
-          name: 'about',
-          component: AboutView,
-          meta: { requiresAuth: true },
-        },
+        // {
+        //   path: 'about',
+        //   name: 'about',
+        //   component: AboutView,
+        //   meta: { requiresAuth: true },
+        // },
         {
           path: 'dashboard',
           name: 'dashboard',
@@ -51,6 +54,24 @@ const router = createRouter({
           meta: { requiresAuth: true },
         }
       ],
+    },
+    {
+      path: '/privacypolicy',
+      name: 'PrivacyPolicy',
+      component: PrivacyPolicy,
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/termsofservice',
+        name: 'TermsOfService',
+        component: TermsOfService,
+        meta: { requiresAuth: false },
+    },
+    {
+      path: '/aboutus',
+      name: 'AboutUs',
+      component: AboutUs,
+      meta: { requiresAuth: false },
     },
   ],
 })

@@ -9,7 +9,7 @@
   --funkollection-soft-white: #ffffff;
 }
 
-#app {
+.app {
   max-width: 100%;
   margin: 0 auto;
   /* padding: 3rem; */
@@ -29,12 +29,12 @@
 
 
 @media (min-width: 1024px) {
-  body {
+  /* body {
     display: flex;
     place-items: center;
-  }
+  } */
 
-  #app {
+  .app-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
     padding: 0 0 0rem;

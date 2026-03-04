@@ -28,7 +28,7 @@ const signInWithGoogle = async () => {
       { merge: true },
     )
 
-    router.push('/about')
+    router.push('/collection')
   } catch (error) {
     console.error(error)
   }
@@ -343,15 +343,15 @@ const faqs = [
            <p class="text-2xl/12 home-text">Company</p>
            <div class="flex-col">
             <div>
-              <a href="/" class="footer-link">About Us</a>
+              <a href="/aboutus" class="footer-link">About Us</a>
             </div>
 
             <div>
-              <a href="/" class="footer-link">Terms of Use</a>
+              <a href="/termsofservice" class="footer-link">Terms of Use</a>
             </div>
 
             <div>
-              <a href="/" class="footer-link">Privacy Policy</a>
+              <a href="/privacypolicy" class="footer-link">Privacy Policy</a>
             </div>
           </div>
         </div>
