@@ -84,13 +84,13 @@ const closeMobileNav = () => {
             </svg>
           </button>
           <div class="flex flex-col flex-1 gap-2">
-            <RouterLink
+            <!-- <RouterLink
               to="/about"
               class="nav-link text-xl py-2"
               @click="closeMobileNav"
               active-class="router-link-active"
               >About</RouterLink
-            >
+            > -->
             <RouterLink
               to="/dashboard"
               class="nav-link text-xl py-2"
@@ -111,6 +111,13 @@ const closeMobileNav = () => {
               @click="closeMobileNav"
               active-class="router-link-active"
               >Favorites</RouterLink
+            >
+            <RouterLink
+              to="/account"
+              class="nav-link text-xl py-2"
+              @click="closeMobileNav"
+              active-class="router-link-active"
+              >Account</RouterLink
             >
           </div>
           <div class="flex-1"></div>

@@ -7,6 +7,7 @@
   --funkollection-secondary: #8a9a5b;
   --funkollection-text: #333333;
   --funkollection-soft-white: #ffffff;
+  --funkollection-gradient: linear-gradient(135deg, #c084fc, #f472b6, #fbbf24);
 }
 
 .app {

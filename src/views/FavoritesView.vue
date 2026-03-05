@@ -18,13 +18,11 @@ async function fetchFavorites() {
   if (!user.value) return
   const favSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'favorites'))
   const favIds = favSnapshot.docs.map((doc) => doc.id)
-  // Fetch Funko details for each favorite
   const funkoDetails = await Promise.all(
     favIds.map(async (id) => {
       const funkoDoc = await getDoc(doc(db, 'FunkoPops', id))
       if (funkoDoc.exists()) {
         const data = funkoDoc.data()
-        // Try to get user-specific image/title/name/series if available
         const userFunkoDoc = await getDoc(doc(db, 'users', user.value.uid, 'funkos', id))
         const userData = userFunkoDoc.exists() ? userFunkoDoc.data() : {}
         return {
@@ -63,39 +61,59 @@ onMounted(() => {
 <template>
   <div class="card">
     <h2 class="text-2xl font-bold mb-4">My Favorites</h2>
+
     <div v-if="loading" class="p-4">Loading favorites...</div>
     <div v-else>
       <div v-if="favorites.length === 0" class="p-4">No favorites yet.</div>
-      <table v-else class="min-w-full table-auto border-collapse">
-        <thead>
-          <tr>
-            <th class="px-4 py-2">Image</th>
-            <th class="px-4 py-2">Name</th>
-            <th class="px-4 py-2">Title</th>
-            <th class="px-4 py-2">Series</th>
-            <th class="px-4 py-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="funko in favorites" :key="funko.id" class="hover:bg-gray-100">
-            <td class="px-4 py-2">
-              <img
-                v-if="funko.image"
-                :src="funko.image"
-                alt="Funko Image"
-                class="w-16 h-16 object-cover rounded"
-              />
-            </td>
-            <td class="px-4 py-2">{{ funko.name }}</td>
-            <td class="px-4 py-2">{{ funko.title }}</td>
-            <td class="px-4 py-2">{{ funko.series }}</td>
-            <td class="px-4 py-2">
+      <div v-else>
+
+        <!-- Mobile Card View -->
+        <div class="mobile-cards">
+          <div v-for="funko in favorites" :key="funko.id" class="mobile-card">
+            <div class="mobile-card-header">
+              <img v-if="funko.image" :src="funko.image" :alt="funko.name" class="mobile-card-img" />
+              <div>
+                <div class="mobile-card-name">{{ funko.name }}</div>
+                <div class="mobile-card-sub">{{ funko.title }}</div>
+                <div class="mobile-card-sub">{{ funko.series }}</div>
+              </div>
+            </div>
+            <div class="mobile-card-actions">
               <Button icon="pi pi-eye" outlined rounded severity="info" @click="viewFunko(funko)" />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desktop Table View -->
+        <table class="desktop-table min-w-full table-auto border-collapse">
+          <thead>
+            <tr>
+              <th class="px-4 py-2">Image</th>
+              <th class="px-4 py-2">Name</th>
+              <th class="px-4 py-2">Title</th>
+              <th class="px-4 py-2">Series</th>
+              <th class="px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="funko in favorites" :key="funko.id" class="hover:bg-gray-100">
+              <td class="px-4 py-2">
+                <img v-if="funko.image" :src="funko.image" alt="Funko Image" class="w-16 h-16 object-cover rounded" />
+              </td>
+              <td class="px-4 py-2">{{ funko.name }}</td>
+              <td class="px-4 py-2">{{ funko.title }}</td>
+              <td class="px-4 py-2">{{ funko.series }}</td>
+              <td class="px-4 py-2">
+                <Button icon="pi pi-eye" outlined rounded severity="info" @click="viewFunko(funko)" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+      </div>
     </div>
+
+    <!-- View Dialog -->
     <Dialog
       v-model:visible="showViewDialog"
       modal
@@ -110,17 +128,11 @@ onMounted(() => {
           class="w-96 h-96 object-cover rounded mb-8 border shadow-lg"
         />
         <div class="text-3xl font-bold mb-4">{{ viewedFunko.name }}</div>
-        <div class="mb-3 text-xl">
-          <span class="font-semibold">Title:</span> {{ viewedFunko.title }}
-        </div>
-        <div class="mb-3 text-xl">
-          <span class="font-semibold">Series:</span> {{ viewedFunko.series }}
-        </div>
+        <div class="mb-3 text-xl"><span class="font-semibold">Title:</span> {{ viewedFunko.title }}</div>
+        <div class="mb-3 text-xl"><span class="font-semibold">Series:</span> {{ viewedFunko.series }}</div>
         <div class="mb-3 text-xl"><span class="font-semibold">ID:</span> {{ viewedFunko.id }}</div>
         <div class="mb-3 text-xl" v-if="viewedFunko.purchasePrice !== undefined">
-          <span class="font-semibold">Purchase Price:</span> ${{
-            Number(viewedFunko.purchasePrice).toFixed(2)
-          }}
+          <span class="font-semibold">Purchase Price:</span> ${{ Number(viewedFunko.purchasePrice).toFixed(2) }}
         </div>
       </div>
     </Dialog>
@@ -136,8 +148,70 @@ onMounted(() => {
   max-width: 900px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
-th,
-td {
+
+th, td {
   border-bottom: 1px solid #e5e7eb;
+}
+
+/* Mobile cards - visible by default */
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mobile-card {
+  background: var(--funkollection-background, #f9f9f9);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobile-card-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.mobile-card-img {
+  width: 4rem;
+  height: 4rem;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.mobile-card-name {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.mobile-card-sub {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.mobile-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Desktop table - hidden by default */
+.desktop-table {
+  display: none;
+}
+
+/* Switch at md breakpoint */
+@media (min-width: 768px) {
+  .mobile-cards {
+    display: none !important;
+  }
+
+  .desktop-table {
+    display: table;
+  }
 }
 </style>

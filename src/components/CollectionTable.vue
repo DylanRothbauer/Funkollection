@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import {
   collection,
   getDocs,
@@ -101,6 +101,14 @@ async function toggleFavorite(funko) {
     })
   }
 }
+
+const filteredFunkos = computed(() => {
+  const search = filters.value.global.value?.toLowerCase() || ''
+  if (!search) return funkos.value
+  return funkos.value.filter(f =>
+    [f.name, f.title, f.series, f.id].some(v => v?.toLowerCase().includes(search))
+  )
+})
 
 onMounted(() => {
   const auth = getAuth()
@@ -216,7 +224,43 @@ function handlePopEdited() {
       :userId="user && user.uid ? user.uid : ''"
       @pop-edited="handlePopEdited"
     />
-    <div class="card overflow-x-auto">
+    <!-- Shared toolbar - always visible -->
+    <div class="flex flex-wrap gap-2 items-center justify-between p-4">
+      <IconField>
+        <InputIcon>
+          <i class="pi pi-search" />
+        </InputIcon>
+        <InputText v-model="filters['global'].value" placeholder="Search..." />
+      </IconField>
+      <div class="flex gap-2">
+        <Button label="New" icon="pi pi-plus" @click="showAddDialog = true" />
+        <Button label="Export" icon="pi pi-upload" severity="secondary" @click="exportCSV($event)" />
+      </div>
+    </div>
+    <!-- Mobile Card View (visible on small screens only) -->
+    <div class="mobile-cards md:hidden">
+      <div v-for="funko in filteredFunkos" :key="funko.id" class="mobile-card">
+        <div class="mobile-card-header">
+          <img v-if="funko.image" :src="funko.image" :alt="funko.name" class="mobile-card-img" />
+          <div>
+            <div class="mobile-card-name">{{ funko.name }}</div>
+            <div class="mobile-card-sub">{{ funko.title }}</div>
+            <div class="mobile-card-sub">{{ funko.series }}</div>
+          </div>
+        </div>
+        <div class="mobile-card-actions">
+          <Button icon="pi pi-eye" outlined rounded severity="info" @click="viewFunko(funko)" />
+          <Button icon="pi pi-pencil" outlined rounded @click="editFunko(funko)" />
+          <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeleteFunko(funko)" />
+          <Button
+            :icon="isFavorite(funko) ? 'pi pi-heart-fill' : 'pi pi-heart'"
+            outlined rounded severity="help"
+            @click="toggleFavorite(funko)"
+          />
+        </div>
+      </div>
+    </div>
+    <div class="card overflow-x-auto hidden md:block">
       <DataTable
         ref="dt"
         v-model:selection="selectedFunkos"
@@ -231,7 +275,7 @@ function handlePopEdited() {
         :rowsPerPageOptions="[5, 10, 25, 50]"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} products"
       >
-        <template #header>
+        <!-- <template #header>
           <div class="flex flex-wrap gap-2 items-center justify-between">
             <div class="flex items-center gap-2">
               <IconField>
@@ -251,7 +295,7 @@ function handlePopEdited() {
               />
             </div>
           </div>
-        </template>
+        </template> -->
         <template #empty> No Funko Pops found. </template>
         <template #loading> Loading Funko Pops data. Please wait. </template>
 
@@ -322,4 +366,57 @@ function handlePopEdited() {
 .p-toolbar {
   background: var(--funkollection-background) !important;
 }
+
+.mobile-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  .mobile-cards {
+    display: none !important;
+  }
+}
+
+.mobile-card {
+  background: var(--funkollection-background);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mobile-card-header {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.mobile-card-img {
+  width: 4rem;
+  height: 4rem;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.mobile-card-name {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.mobile-card-sub {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.mobile-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 </style>

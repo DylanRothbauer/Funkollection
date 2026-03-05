@@ -67,7 +67,7 @@ const faqs = [
     <div class="app-name">Funkollection</div>
     <div class="auth-links">
       <!-- <a href="#" @click.prevent="signInWithGoogle" class="signin">Sign In with Google</a> -->
-      <a @click="signInWithGoogle" class="signin">Sign In with Google</a>
+       <a @click="signInWithGoogle" class="login google-btn signin">Sign In with Google</a>
     </div>
   </header>
 
@@ -173,7 +173,7 @@ const faqs = [
     <!-- Testimonials  -->
     <div class="grid grid-cols-6 gap-8 place-content-center py-32">
         <h1
-        class="playfair-display-hometitle text-7xl landing-title font-bold grid col-span-6 col-start-1"
+        class="playfair-display-hometitle text-4xl md:text-7xl landing-title font-bold grid col-span-6 col-start-1"
         style="display: grid; place-items: center;"
       >
         Testimonials
@@ -412,7 +412,7 @@ const faqs = [
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem 1rem 2rem;
+  padding: 1.5rem 1rem 1rem 1rem;
   background: white;
   position: fixed;
   top: 0;
@@ -420,6 +420,13 @@ const faqs = [
   width: 100%;
   z-index: 100;
 }
+
+@media (min-width: 768px) {
+  .landing-header {
+    padding: 1.5rem 2rem 1rem 2rem;
+  }
+}
+
 .app-name {
   font-size: 2rem;
   font-weight: bold;
@@ -436,6 +443,13 @@ const faqs = [
   border-radius: 4px;
   transition: background 0.2s;
 }
+
+@media (max-width: 768px) {
+  .auth-links a {
+    font-size: 10px;
+  }
+}
+
 .auth-links a.login:hover {
   background: #f0f0f0;
 }
@@ -469,6 +483,7 @@ const faqs = [
 .feature-text {
   font-weight: bold;
   font-size: 2rem;
+  text-align: center;
 }
 
 .gradient-circle {
@@ -542,5 +557,13 @@ const faqs = [
 
 .footer-link:hover {
   text-decoration: underline;
+}
+
+.p-accordionpanel:not(.p-disabled).p-accordionpanel-active > .p-accordionheader:hover {
+  color: var(--funkollection-soft-white) !important;
+}
+
+.p-card {
+  background: var(--p-accordion-header-background) !important;
 }
 </style>
