@@ -232,19 +232,28 @@ const addFunkoPopHandler = async () => {
         class="p-2 border rounded"
       />
       <div>
-        <label
-          for="funko-image-upload"
-          class="p-2 border rounded cursor-pointer bg-gray-100 hover:bg-gray-200 block text-center"
-        >
+        <!-- Upload - input inside label -->
+        <label class="upload-label">
           {{ imageFileName || 'Upload Image' }}
+          <input
+            type="file"
+            accept="image/*"
+            @change="handleImageUpload"
+            class="hidden"
+          />
         </label>
-        <input
-          id="funko-image-upload"
-          type="file"
-          accept="image/*"
-          @change="handleImageUpload"
-          class="hidden"
-        />
+
+        <!-- Camera - only shows on mobile -->
+        <label class="camera-btn">
+          <i class="pi pi-camera"></i> Take Photo
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            @change="handleImageUpload"
+            class="hidden"
+          />
+        </label>
       </div>
       <div v-if="funkoImage" class="mt-2">
         <img :src="funkoImage" alt="Preview" class="w-24 h-24 object-cover rounded mx-auto" />
@@ -266,3 +275,47 @@ const addFunkoPopHandler = async () => {
     </form>
   </Dialog>
 </template>
+
+<style>
+.upload-label {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #444;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  background: transparent;
+  color: #aaa;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+
+.upload-label:hover {
+  background: #2a2a2a;
+}
+
+.camera-btn {
+  display: none;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #444;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  background: transparent;
+  color: #aaa;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+
+.camera-btn:hover {
+  background: #2a2a2a;
+}
+
+@media (max-width: 768px) {
+  .camera-btn {
+    display: block;
+  }
+}
+</style>
