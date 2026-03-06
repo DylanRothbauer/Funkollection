@@ -5,6 +5,9 @@ import { useAuthUser } from '../composables/useAuthUser.js'
 import { db } from '../firebase.js'
 import { doc, getDoc } from 'firebase/firestore'
 import Button from 'primevue/button'
+import { getCheckoutUrl } from '../../stripePayment.js'
+import { app } from '../firebase.js'
+
 
 const { user, loading } = useAuthUser()
 const membershipTier = ref('Standard Member')
