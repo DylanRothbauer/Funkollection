@@ -3,7 +3,7 @@ import { ref, nextTick, onMounted } from 'vue'
 import { getAuth } from 'firebase/auth'
 import {getFunctions, httpsCallable} from 'firebase/functions'
 import { marked } from 'marked'
-import { collection, onSnapshot } from 'firebase/firestore'
+import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore'
 import { db, auth } from '../firebase.js'
 import PaywallCard from '../components/PaywallCard.vue'
 
@@ -77,21 +77,22 @@ onMounted(() => {
   const currentUser = auth.currentUser
   if (!currentUser) return
 
-  const subscriptionsRef = collection(
-    db,
-    'customers',
-    currentUser.uid,
-    'subscriptions'
-  )
+  const userDocRef = doc(db, 'users', currentUser.uid)
+  getDoc(userDocRef).then((docSnap) => {
+    if (docSnap.exists() && docSnap.data().isAdmin) {
+      isPremium.value = true
+      isLoadingUserData.value = false
+      return
+    }
 
-  onSnapshot(subscriptionsRef, (snapshot) => {
-    const hasActiveSubscription = snapshot.docs.some(doc => {
-      const data = doc.data()
-      return data.status === 'active' || data.status === 'trialing'
+    const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
+    onSnapshot(subscriptionsRef, (snapshot) => {
+      isPremium.value = snapshot.docs.some(doc => {
+        const data = doc.data()
+        return data.status === 'active' || data.status === 'trialing'
+      })
+      isLoadingUserData.value = false
     })
-
-    isPremium.value = hasActiveSubscription
-    isLoadingUserData.value = false
   })
 })
 

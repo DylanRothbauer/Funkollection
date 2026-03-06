@@ -26,20 +26,23 @@ onMounted(() => {
   const currentUser = auth.currentUser
   if (!currentUser) return
 
-  const subscriptionsRef = collection(
-    db,
-    "customers",
-    currentUser.uid,
-    "subscriptions"
-  )
+  const userDocRef = doc(db, 'users', currentUser.uid)
+  getDoc(userDocRef).then((docSnap) => {
+    if (docSnap.exists() && docSnap.data().isAdmin) {
+      isPremium.value = true
+      isLoadingUserData.value = false
+      return // stop here for admins
+    }
 
-  onSnapshot(subscriptionsRef, (snapshot) => {
-    const hasActiveSubscription = snapshot.docs.some(doc => {
-      const data = doc.data()
-      return data.status === "active" || data.status === "trialing"
+    // Only check subscription if not admin
+    const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
+    onSnapshot(subscriptionsRef, (snapshot) => {
+      isPremium.value = snapshot.docs.some(doc => {
+        const data = doc.data()
+        return data.status === 'active' || data.status === 'trialing'
+      })
+      isLoadingUserData.value = false
     })
-
-    isPremium.value = hasActiveSubscription
   })
 })
 </script>
