@@ -76,7 +76,7 @@ onMounted(() => {
 
   <!-- Paywall / Upgrade View for Standard Members -->
   <div v-else class="paywall-container">
-    <PaywallCard></PaywallCard>
+    <PaywallCard feature-name="Dashboard"></PaywallCard>
   </div>
 </template>
 

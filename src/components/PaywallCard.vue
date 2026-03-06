@@ -5,23 +5,31 @@ import { useAuthUser } from '../composables/useAuthUser.js'
 import { db } from '../firebase.js'
 import { doc, getDoc } from 'firebase/firestore'
 import Button from 'primevue/button'
+import { getCheckoutUrl } from '../../stripePayment.js'
+
+// Props for dynamic content
+const props = defineProps({
+  featureName: {
+    type: String,
+    default: 'This Feature'
+  }
+})
 
 const { user, loading } = useAuthUser()
 const membershipTier = ref('Standard Member')
 const isLoadingUserData = ref(false)
+const isAdmin = ref(false)
 
-// Fetch user's membership tier from Firestore
 const fetchMembershipTier = async () => {
   if (!user.value) return
-
   isLoadingUserData.value = true
   try {
     const userDocRef = doc(db, 'users', user.value.uid)
     const userDocSnap = await getDoc(userDocRef)
-
     if (userDocSnap.exists()) {
       const userData = userDocSnap.data()
       membershipTier.value = userData.membershipTier || 'Standard Member'
+      isAdmin.value = userData.isAdmin || false
     }
   } catch (error) {
     console.error('Error fetching user membership:', error)
@@ -30,17 +38,17 @@ const fetchMembershipTier = async () => {
   }
 }
 
-// Stripe
 const upgradeToPremium = async () => {
-  console.log('Upgrade to Premium clicked - Stripe integration coming soon')
-  const priceId = "price_1T86oGLancjOeFyBC9PctmbE";
+  const priceId = "price_1T86oGLancjOeFyBC9PctmbE"
   try {
-    const checkoutUrl = await getCheckoutUrl(app, priceId);
-    window.location.href = checkoutUrl;
+    const { getApp } = await import('firebase/app')
+    const firebaseApp = getApp()
+    const checkoutUrl = await getCheckoutUrl(firebaseApp, priceId)
+    window.location.href = checkoutUrl
   } catch (error) {
-    console.error('Error during upgrade:', error);
+    console.error('Error during upgrade:', error)
   }
-};
+}
 
 onMounted(() => {
   fetchMembershipTier()
@@ -49,9 +57,19 @@ onMounted(() => {
 
 <template>
   <div class="paywall-card">
-      <div class="paywall-content">
+    <div class="paywall-content">
+
+      <!-- Admin view -->
+      <div v-if="isAdmin">
+        <i class="pi pi-shield paywall-icon" style="color: var(--funkollection-secondary)"></i>
+        <h2 class="paywall-title">Admin Account</h2>
+        <p class="paywall-description">You have full access to all features as an admin.</p>
+      </div>
+
+      <!-- Normal paywall view -->
+      <div v-else>
         <i class="pi pi-lock paywall-icon"></i>
-        <h2 class="paywall-title">Dashboard is a Premium Feature</h2>
+        <h2 class="paywall-title">{{ featureName }} is a Premium Feature</h2>
         <p class="paywall-description">
           Unlock full analytics, detailed insights, and complete collection management with a Premium membership.
         </p>
@@ -87,9 +105,10 @@ onMounted(() => {
           Membership: {{ membershipTier }}
         </p>
       </div>
-    </div>
-</template>
 
+    </div>
+  </div>
+</template>
 <style scoped>
 
 .paywall-card {

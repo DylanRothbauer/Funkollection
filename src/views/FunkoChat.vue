@@ -186,7 +186,7 @@ onMounted(() => {
   </div>
 
   <div v-else class="paywall-container">
-    <PaywallCard />
+    <PaywallCard feature-name="Funko Chat" />
   </div>
   
 </template>

@@ -6,11 +6,15 @@ import { getCheckoutUrl, getPortalUrl } from '../../stripePayment.js'
 import { getPremiumStatus } from '../../getPremiumStatus.js'
 import { app } from '../firebase.js'
 import { getAuth } from 'firebase/auth'
+import { db } from '../firebase.js'
+import { doc, getDoc } from 'firebase/firestore'
 
 const { user } = useAuthUser()
 const isPremium = ref(false)
 const isLoadingUserData = ref(false)
 const auth = getAuth(app)
+
+const isAdmin = ref(false)
 
 const upgradeToPremium = async () => {
   try {
@@ -36,9 +40,18 @@ const checkPremiumStatus = async () => {
 
   isLoadingUserData.value = true
   try {
+    // Check admin first
+    const userDocRef = doc(db, 'users', auth.currentUser.uid)
+    const userDocSnap = await getDoc(userDocRef)
+    if (userDocSnap.exists() && userDocSnap.data().isAdmin) {
+      isAdmin.value = true
+      isPremium.value = true
+      isLoadingUserData.value = false
+      return
+    }
+
     const newPremiumStatus = await getPremiumStatus(app)
     isPremium.value = newPremiumStatus
-    console.log('Premium status:', newPremiumStatus)
   } catch (error) {
     console.error('Error checking premium status:', error)
     isPremium.value = false
@@ -69,14 +82,25 @@ onMounted(() => {
       <div class="account-card">
         <i class="pi pi-check-circle premium-badge-icon"></i>
         <h2>{{ user?.displayName || user?.email }}</h2>
-        <p class="membership-status">Premium Member</p>
-        <p class="description">Thank you for being a premium member! Enjoy full access to all features.</p>
-        <Button
-          label="Manage Subscription"
-          icon="pi pi-cog"
-          @click="manageSubscription"
-          class="action-button"
-        />
+
+        <!-- Admin view -->
+        <div v-if="isAdmin">
+          <p class="membership-status">Admin Account</p>
+          <p class="description">You have full access to all features.</p>
+        </div>
+
+        <!-- Regular premium view -->
+        <div v-else>
+          <p class="membership-status">Premium Member</p>
+          <p class="description">Thank you for being a premium member! Enjoy full access to all features.</p>
+          <Button
+            label="Manage Subscription"
+            icon="pi pi-cog"
+            @click="manageSubscription"
+            class="action-button"
+          />
+        </div>
+
       </div>
     </div>
 
