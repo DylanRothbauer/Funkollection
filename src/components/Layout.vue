@@ -113,6 +113,13 @@ const closeMobileNav = () => {
               >Favorites</RouterLink
             >
             <RouterLink
+              to="/funko-chat"
+              class="nav-link text-xl py-2"
+              @click="closeMobileNav"
+              active-class="router-link-active"
+              >Funko Chat</RouterLink
+            >
+            <RouterLink
               to="/account"
               class="nav-link text-xl py-2"
               @click="closeMobileNav"
@@ -176,6 +183,17 @@ const closeMobileNav = () => {
             >
               <i class="pi pi-heart pr-3 w-3 nav-icon"></i>
               <span class="ml-2 flex-1">Favorites</span>
+            </RouterLink>
+          </div>
+
+          <div class="margin-vertical">
+            <RouterLink
+              to="/funkochat"
+              class="flex nav-link text-xl items-center"
+              active-class="router-link-active"
+            >
+              <i class="pi pi-sparkles pr-3 w-3 nav-icon"></i>
+              <span class="ml-2 flex-1">Funko Chat</span>
             </RouterLink>
           </div>
 

@@ -1,7 +1,14 @@
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import { getAuth } from 'firebase/auth'
 import {getFunctions, httpsCallable} from 'firebase/functions'
+import { marked } from 'marked'
+import { collection, onSnapshot } from 'firebase/firestore'
+import { db, auth } from '../firebase.js'
+import PaywallCard from '../components/PaywallCard.vue'
+
+const isPremium = ref(false)
+const isLoadingUserData = ref(true)
 
 const messages = ref([
   {
@@ -9,6 +16,10 @@ const messages = ref([
     text: "Hey there! I'm Funko Assistant 🎯 Ask me anything about your collection — like how many Pops you own, your most expensive one, or what series you collect!",
   },
 ])
+
+function renderMarkdown(text) {
+  return marked.parse(text)
+}
 
 const input = ref('')
 const loading = ref(false)
@@ -61,88 +72,122 @@ function handleKeydown(e) {
     sendMessage()
   }
 }
+
+onMounted(() => {
+  const currentUser = auth.currentUser
+  if (!currentUser) return
+
+  const subscriptionsRef = collection(
+    db,
+    'customers',
+    currentUser.uid,
+    'subscriptions'
+  )
+
+  onSnapshot(subscriptionsRef, (snapshot) => {
+    const hasActiveSubscription = snapshot.docs.some(doc => {
+      const data = doc.data()
+      return data.status === 'active' || data.status === 'trialing'
+    })
+
+    isPremium.value = hasActiveSubscription
+    isLoadingUserData.value = false
+  })
+})
+
 </script>
 
 <template>
-  <div class="chat-page">
+  <div v-if="isLoadingUserData" class="loading-state">
+    <p>Loading...</p>
+  </div>
 
-    <!-- Header -->
-    <div class="chat-header">
-      <div class="chat-header-left">
-        <div class="chat-avatar">
-          <i class="pi pi-sparkles"></i>
+  <div v-else-if="isPremium">
+    <div class="chat-page">
+      <!-- Header -->
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <div class="chat-avatar">
+            <i class="pi pi-sparkles"></i>
+          </div>
+          <div>
+            <h1 class="chat-title">Funko Assistant</h1>
+            <span class="chat-subtitle">Ask anything about your collection</span>
+          </div>
         </div>
-        <div>
-          <h1 class="chat-title">Funko Assistant</h1>
-          <span class="chat-subtitle">Ask anything about your collection</span>
-        </div>
-      </div>
-      <div class="chat-status">
-        <span class="status-dot"></span>
-        Online
-      </div>
-    </div>
-
-    <!-- Messages -->
-    <div class="chat-messages" ref="messagesContainer">
-      <div
-        v-for="(msg, i) in messages"
-        :key="i"
-        :class="['message-row', msg.role === 'user' ? 'message-row--user' : 'message-row--assistant']"
-      >
-        <div v-if="msg.role === 'assistant'" class="message-avatar">
-          <i class="pi pi-sparkles"></i>
-        </div>
-        <div :class="['message-bubble', msg.role === 'user' ? 'bubble--user' : 'bubble--assistant']">
-          {{ msg.text }}
+        <div class="chat-status">
+          <span class="status-dot"></span>
+          Online
         </div>
       </div>
 
-      <!-- Loading indicator -->
-      <div v-if="loading" class="message-row message-row--assistant">
-        <div class="message-avatar">
-          <i class="pi pi-sparkles"></i>
-        </div>
-        <div class="message-bubble bubble--assistant bubble--loading">
-          <span></span><span></span><span></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Suggestions -->
-    <div v-if="messages.length <= 1" class="chat-suggestions">
-      <button
-        v-for="s in suggestions"
-        :key="s"
-        class="suggestion-chip"
-        @click="sendMessage(s)"
-      >
-        {{ s }}
-      </button>
-    </div>
-
-    <!-- Input -->
-    <div class="chat-input-area">
-      <div class="chat-input-wrapper">
-        <textarea
-          v-model="input"
-          placeholder="Ask about your collection..."
-          class="chat-input"
-          rows="1"
-          @keydown="handleKeydown"
-        />
-        <button
-          class="send-btn"
-          :disabled="!input.trim() || loading"
-          @click="sendMessage()"
+      <!-- Messages -->
+      <div class="chat-messages" ref="messagesContainer">
+        <div
+          v-for="(msg, i) in messages"
+          :key="i"
+          :class="['message-row', msg.role === 'user' ? 'message-row--user' : 'message-row--assistant']"
         >
-          <i class="pi pi-send"></i>
+          <div v-if="msg.role === 'assistant'" class="message-avatar">
+            <i class="pi pi-sparkles"></i>
+          </div>
+          <div :class="['message-bubble', msg.role === 'user' ? 'bubble--user' : 'bubble--assistant']">
+            <span v-if="msg.role === 'assistant'" v-html="renderMarkdown(msg.text)"></span>
+            <span v-else>{{ msg.text }}</span>
+          </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div v-if="loading" class="message-row message-row--assistant">
+          <div class="message-avatar">
+            <i class="pi pi-sparkles"></i>
+          </div>
+          <div class="message-bubble bubble--assistant bubble--loading">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Suggestions -->
+      <div v-if="messages.length <= 1" class="chat-suggestions">
+        <button
+          v-for="s in suggestions"
+          :key="s"
+          class="suggestion-chip"
+          @click="sendMessage(s)"
+        >
+          {{ s }}
         </button>
       </div>
-      <p class="chat-hint">Press Enter to send · Shift+Enter for new line</p>
-    </div>
 
+      <!-- Input -->
+      <div class="chat-input-area">
+        <div class="chat-input-wrapper">
+          <textarea
+            v-model="input"
+            placeholder="Ask about your collection..."
+            class="chat-input"
+            rows="1"
+            @keydown="handleKeydown"
+          />
+          <button
+            class="send-btn"
+            :disabled="!input.trim() || loading"
+            @click="sendMessage()"
+          >
+            <i class="pi pi-send"></i>
+          </button>
+        </div>
+        <p class="chat-hint">Press Enter to send · Shift+Enter for new line</p>
+      </div>
+
+    </div>
   </div>
+
+  <div v-else class="paywall-container">
+    <PaywallCard />
+  </div>
+  
 </template>
 
 <style scoped>
@@ -406,4 +451,42 @@ function handleKeydown(e) {
     font-size: 0.8rem;
   }
 }
+
+.bubble--assistant :deep(p) {
+  margin: 0 0 0.5rem;
+}
+.bubble--assistant :deep(p:last-child) {
+  margin: 0;
+}
+.bubble--assistant :deep(strong) {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.bubble--assistant :deep(ol), 
+.bubble--assistant :deep(ul) {
+  margin: 0.5rem 0 0.5rem 1.2rem;
+  padding: 0;
+}
+.bubble--assistant :deep(li) {
+  margin-bottom: 0.25rem;
+}
+
+.paywall-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: var(--funkollection-background);
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: #666;
+  font-size: 1.125rem;
+}
+
 </style>

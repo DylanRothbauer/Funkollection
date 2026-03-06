@@ -18,7 +18,17 @@ exports.funkoChat = onCall(async (request) => {
   const userMessage = request.data.message
 
   const funkosSnapshot = await db.collection('users').doc(userId).collection('funkos').get()
-  const funkos = funkosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  //const funkos = funkosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  const funkos = funkosSnapshot.docs.map(doc => {
+  const data = doc.data()
+  return {
+    id: doc.id,
+    name: data.name || '',
+    title: data.title || '',
+    series: data.series || '',
+    purchasePrice: data.purchasePrice || 0,
+  }
+})
 
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_KEY,
