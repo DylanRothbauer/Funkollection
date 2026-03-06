@@ -35,26 +35,10 @@ const closeMobileNav = () => {
 <template>
   <div class="flex flex-col min-h-screen w-screen">
     <!-- Mobile Header -->
-    <div
-      class="mobile-header md:hidden flex items-center justify-between px-3 py-2 bg-[var(--funkollection-primary)]"
-    >
+    <div class="mobile-header md:hidden flex items-center justify-between px-3 py-2 bg-[var(--funkollection-primary)] fixed top-0 left-0 right-0 z-30">
       <h1 class="sora font-bold text-xl text-white leading-tight m-0">Funkollection</h1>
-      <button
-        @click="toggleMobileNav"
-        aria-label="Open navigation"
-        class="hamburger-btn"
-        style="padding: 0.4rem"
-      >
-        <svg
-          width="30"
-          height="30"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+      <button @click="toggleMobileNav" aria-label="Open navigation" class="hamburger-btn" style="padding: 0.4rem">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="3" y1="12" x2="21" y2="12" />
           <line x1="3" y1="6" x2="21" y2="6" />
           <line x1="3" y1="18" x2="21" y2="18" />
@@ -65,60 +49,21 @@ const closeMobileNav = () => {
     <!-- Mobile Nav Drawer -->
     <transition name="fade">
       <div v-if="showMobileNav" class="mobile-nav-overlay md:hidden" @click.self="closeMobileNav">
-        <nav
-          class="mobile-nav flex flex-col bg-[var(--funkollection-primary)] text-white px-3 pt-3 pb-2 w-4/5 max-w-xs h-full fixed top-0 left-0 z-50 shadow-lg"
-        >
+        <nav class="mobile-nav flex flex-col bg-[var(--funkollection-primary)] text-white px-3 pt-3 pb-2 w-4/5 max-w-xs h-full fixed top-0 left-0 z-50 shadow-lg">
           <button @click="closeMobileNav" aria-label="Close navigation" class="self-end mb-4">
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
           <div class="flex flex-col flex-1 gap-2">
-            <!-- <RouterLink
-              to="/about"
-              class="nav-link text-xl py-2"
-              @click="closeMobileNav"
-              active-class="router-link-active"
-              >About</RouterLink
-            > -->
-            <RouterLink
-              to="/dashboard"
-              class="nav-link text-xl py-2"
-              @click="closeMobileNav"
-              active-class="router-link-active"
-              >Dashboard</RouterLink
-            >
-            <RouterLink
-              to="/collection"
-              class="nav-link text-xl py-2"
-              @click="closeMobileNav"
-              active-class="router-link-active"
-              >Collection</RouterLink
-            >
-            <RouterLink
-              to="/favorites"
-              class="nav-link text-xl py-2"
-              @click="closeMobileNav"
-              active-class="router-link-active"
-              >Favorites</RouterLink
-            >
-            <RouterLink
-              to="/account"
-              class="nav-link text-xl py-2"
-              @click="closeMobileNav"
-              active-class="router-link-active"
-              >Account</RouterLink
-            >
+            <div class="nav-section-label-mobile">✦ Premium</div>
+            <RouterLink to="/dashboard" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Dashboard</RouterLink>
+            <RouterLink to="/funkochat" class="nav-link text-xl py-2 whitespace-nowrap" @click="closeMobileNav" active-class="router-link-active">Funko Chat</RouterLink>
+            <div class="mobile-nav-divider"></div>
+            <RouterLink to="/collection" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Collection</RouterLink>
+            <RouterLink to="/favorites" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Favorites</RouterLink>
+            <RouterLink to="/account" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Account</RouterLink>
           </div>
           <div class="flex-1"></div>
           <button @click="handleSignOut" class="nav-link text-xl mb-2 signout-btn mobile-signout">
@@ -129,32 +74,33 @@ const closeMobileNav = () => {
     </transition>
 
     <!-- Desktop Layout -->
-    <div class="flex flex-1 w-full h-full">
-      <div class="hidden md:flex nav-container h-full">
+    <div class="flex flex-1 w-full min-h-screen">
+      <div class="hidden md:flex nav-container min-h-screen" style="align-self: stretch;">
         <nav class="flex flex-col w-48 h-full">
           <div>
             <h1 class="sora nav-head font-bold text-3xl flex-1 items-center">Funkollection</h1>
           </div>
-          <div class="margin-vertical">
-            <!-- <RouterLink
-              to="/about"
-              class="flex nav-link text-xl items-center"
-              active-class="router-link-active"
-            >
-              <i class="pi pi-box pr-3 w-3 nav-icon"></i>
-              <span class="ml-2 flex-1">About</span>
-            </RouterLink> -->
-          </div>
-          <div class="margin-vertical">
-            <RouterLink
-              to="/dashboard"
-              class="flex nav-link text-xl items-center"
-              active-class="router-link-active"
-            >
-              <i class="pi pi-th-large pr-3 w-3 nav-icon"></i>
-              <span class="ml-2 flex-1">Dashboard</span>
-            </RouterLink>
-          </div>
+            <div class="nav-section-label">✦ Premium</div>
+            <div class="nav-premium-group">
+              
+              <div class="margin-vertical">
+                <RouterLink
+                  to="/dashboard"
+                  class="flex nav-link text-xl items-center"
+                  active-class="router-link-active"
+                >
+                  <i class="pi pi-th-large pr-3 w-3 nav-icon"></i>
+                  <span class="ml-2 flex-1">Dashboard</span>
+                </RouterLink>
+              </div>
+
+              <div class="margin-vertical">
+                <RouterLink to="/funkochat" class="flex nav-link text-xl items-center" active-class="router-link-active">
+                  <i class="pi pi-sparkles pr-3 w-3 nav-icon"></i>
+                  <span class="ml-2 flex-1">Funko Chat</span>
+                </RouterLink>
+              </div>
+            </div>
           <div class="margin-vertical">
             <RouterLink
               to="/collection"
@@ -165,9 +111,6 @@ const closeMobileNav = () => {
               <span class="ml-2 flex-1">Collection</span>
             </RouterLink>
           </div>
-
-
-
           <div class="margin-vertical">
             <RouterLink
               to="/favorites"
@@ -178,7 +121,6 @@ const closeMobileNav = () => {
               <span class="ml-2 flex-1">Favorites</span>
             </RouterLink>
           </div>
-
           <div>
             <RouterLink
               to="/account"
@@ -191,7 +133,6 @@ const closeMobileNav = () => {
           </div>
 
           <!-- Add more links as needed here -->
-
           <!-- Spacer pushes the button down-->
           <div class="flex-1"></div>
 
@@ -222,6 +163,12 @@ const closeMobileNav = () => {
   text-align: center;
   color: var(--funkollection-soft-white);
   background-color: var(--funkollection-primary);
+  min-height: 100vh;
+  align-self: stretch;  /* stretches to match sibling content height */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .nav-link {
@@ -232,11 +179,6 @@ const closeMobileNav = () => {
   cursor: pointer;
 }
 
-.margin-vertical:has(.router-link-active) {
-  background-color: var(--funkollection-secondary);
-  font: bold;
-  border-radius: 0.375rem; /* rounded-md */
-}
 
 .main-content {
   background-color: var(--funkollection-background);
@@ -325,4 +267,68 @@ const closeMobileNav = () => {
     padding-bottom: 2rem;
   }
 }
+
+.nav-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.5rem 1rem 0.25rem;
+  background: linear-gradient(135deg, #c084fc, #f472b6, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-top: 0.5rem;
+}
+
+.nav-premium-group {
+  border-left: 2px solid;
+  border-image: linear-gradient(to bottom, #c084fc, #fbbf24) 1;
+  padding-left: 0.25rem;
+}
+
+.nav-section-label-mobile {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.75rem 1rem 0.25rem;
+  background: linear-gradient(135deg, #c084fc, #f472b6, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-top: 0.5rem;
+}
+
+.nav-premium-group .margin-vertical:has(.router-link-active) {
+  background-color: var(--funkollection-secondary);
+  border-radius: 0.375rem;
+}
+
+.margin-vertical:has(.router-link-active) {
+  background-color: var(--funkollection-secondary);
+  font: bold;
+  border-radius: 0.375rem; /* rounded-md */
+}
+
+.mobile-nav-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.15);
+  margin: 0.5rem 1rem;
+}
+
+.mobile-nav .nav-link {
+  color: white !important;
+}
+
+.mobile-nav .signout-btn {
+  color: #e3342f !important;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    min-height: 100vh;
+    padding-bottom: 2rem;
+    padding-top: 48px; /* height of fixed header */
+  }
+}
+
 </style>

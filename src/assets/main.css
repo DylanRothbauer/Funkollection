@@ -51,6 +51,11 @@ body {
   scroll-behavior: smooth;
   scroll-padding-top: 15rem;
   overflow-x: hidden;
+  height: 100%;
+}
+
+#app {
+  height: 100%;
 }
 
 /* Dashbaord Component Cards */

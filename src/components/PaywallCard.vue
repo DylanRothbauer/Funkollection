@@ -33,7 +33,7 @@ const fetchMembershipTier = async () => {
 // Stripe
 const upgradeToPremium = async () => {
   console.log('Upgrade to Premium clicked - Stripe integration coming soon')
-  const priceId = "price_1T2wICQ9qrN939D8gbFcPfPD";
+  const priceId = "price_1T86oGLancjOeFyBC9PctmbE";
   try {
     const checkoutUrl = await getCheckoutUrl(app, priceId);
     window.location.href = checkoutUrl;

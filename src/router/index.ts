@@ -10,6 +10,7 @@ import Account from '@/views/Account.vue'
 import PrivacyPolicy from '@/views/PrivacyPolicy.vue'
 import TermsOfService from '@/views/TermsOfService.vue'
 import AboutUs from '@/views/AboutUs.vue'
+import FunkoChat from '@/views/FunkoChat.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -52,7 +53,13 @@ const router = createRouter({
           name: 'account',
           component: Account,
           meta: { requiresAuth: true },
-        }
+        },
+        {
+          path: 'funkochat',
+          name: 'funkochat',
+          component: FunkoChat,
+          meta: { requiresAuth: true }
+        },
       ],
     },
     {

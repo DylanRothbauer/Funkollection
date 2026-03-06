@@ -14,7 +14,7 @@ const auth = getAuth(app)
 
 const upgradeToPremium = async () => {
   try {
-    const priceId = "price_1T2wICQ9qrN939D8gbFcPfPD";
+    const priceId = "price_1T86oGLancjOeFyBC9PctmbE";
     const checkoutUrl = await getCheckoutUrl(app, priceId);
     window.location.href = checkoutUrl;
   } catch (error) {
