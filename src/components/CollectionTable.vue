@@ -23,6 +23,10 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import Dialog from 'primevue/dialog'
+import * as XLSX from 'xlsx'
+import { useUserFunkos } from '../composables/useUserFunkos'
+
+const { addFunkoPop } = useUserFunkos()
 
 const funkos = ref([])
 const user = ref(null)
@@ -35,6 +39,10 @@ const editingFunko = ref(null)
 const toast = useToast()
 const confirm = useConfirm()
 const favorites = ref([])
+const importInput = ref(null)
+const importResults = ref(null)
+const showImportResults = ref(false)
+const isImporting = ref(false)
 
 async function fetchFunkos() {
   if (!user.value) return
@@ -110,6 +118,66 @@ const filteredFunkos = computed(() => {
   )
 })
 
+function triggerImport() {
+  importInput.value.click()
+}
+
+async function handleImportCSV(event) {
+  const file = event.target.files[0]
+  if (!file || !user.value) return
+
+  isImporting.value = true
+
+  const buffer = await file.arrayBuffer()
+  const workbook = XLSX.read(buffer)
+  const sheet = workbook.Sheets[workbook.SheetNames[0]]
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+
+  let imported = 0
+  let updated = 0
+  let errors = 0
+
+  for (const row of rows) {
+    const id = String(row['id'] || row['ID'] || '').trim()
+    if (!id) { errors++; continue }
+
+    try {
+      // Check if already in user's collection to track whether it's new or updated
+      const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', id)
+      const userFunkoSnap = await getDoc(userFunkoRef)
+      const alreadyOwned = userFunkoSnap.exists()
+
+      await addFunkoPop({
+        id,
+        name: String(row['name'] || row['Name'] || '').trim(),
+        title: String(row['title'] || row['Title'] || '').trim(),
+        series: String(row['series'] || row['Series'] || '').trim(),
+        image: String(row['image url'] || row['Image URL'] || '').trim(),
+        purchasePrice: parseFloat(row['purchase price'] || row['Purchase Price'] || 0) || 0,
+      })
+
+      alreadyOwned ? updated++ : imported++
+    } catch (e) {
+      console.error('Import error on row:', row, e)
+      errors++
+    }
+  }
+
+  await fetchFunkos() // Refresh collection after import
+  isImporting.value = false
+
+  importInput.value.value = ''
+  importResults.value = { imported, updated, errors }
+  showImportResults.value = true
+
+  toast.add({
+    severity: 'success',
+    summary: 'Import Complete',
+    detail: `${imported} added, ${updated} quantity updated, ${errors} errors`,
+    life: 4000
+  })
+}
+
 onMounted(() => {
   const auth = getAuth()
   onAuthStateChanged(auth, async (firebaseUser) => {
@@ -127,7 +195,6 @@ function isFavorite(funko) {
 }
 
 onMounted(() => {
-  // ...your existing Firestore fetch logic...
   loading.value = false
 })
 
@@ -234,7 +301,9 @@ function handlePopEdited() {
       </IconField>
       <div class="flex gap-2">
         <Button label="New" icon="pi pi-plus" @click="showAddDialog = true" />
+        <Button label="Import" icon="pi pi-download" severity="secondary" @click="triggerImport" />
         <Button label="Export" icon="pi pi-upload" severity="secondary" @click="exportCSV($event)" />
+        <input ref="importInput" type="file" accept=".csv" style="display:none" @change="handleImportCSV" />
       </div>
     </div>
     <!-- Mobile Card View (visible on small screens only) -->
@@ -349,6 +418,21 @@ function handlePopEdited() {
         </Column>
       </DataTable>
       <AddPopDialog v-model:visible="showAddDialog" @pop-added="refreshCollection" />
+      <Dialog v-model:visible="showImportResults" modal header="Import Results" :style="{ width: '400px' }">
+        <div v-if="importResults" class="flex flex-col gap-3 p-4 text-center">
+          <div class="text-green-600 text-xl font-bold">✓ {{ importResults.imported }} Pops added</div>
+          <div class="text-blue-600 text-xl">↑ {{ importResults.updated }} quantities updated</div>
+          <div class="text-red-600 text-xl" v-if="importResults.errors > 0">✗ {{ importResults.errors }} errors</div>
+        </div>
+      </Dialog>
+
+      <Dialog v-model:visible="isImporting" modal header="Importing..." :closable="false" :style="{ width: '300px' }">
+        <div class="flex flex-col items-center gap-3 py-4">
+          <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: var(--funkollection-secondary)"></i>
+          <p class="text-center">Importing your collection, please wait...</p>
+        </div>
+      </Dialog>
+      
     </div>
   </div>
 </template>

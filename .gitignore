@@ -31,3 +31,6 @@ coverage
 
 .env.local
 .env
+
+# Ignore auto generated Firebase config file
+./firebase
