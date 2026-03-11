@@ -53,7 +53,13 @@ onMounted(async () => {
   isLoadingUserData.value = false
 
   if (isPremium.value) {
-    await fetchFriends()
+    //await fetchFriends()
+    const friendsRef = collection(db, 'users', currentUser.uid, 'friends')
+      onSnapshot(friendsRef, (snapshot) => {
+        friends.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+        isLoadingFriends.value = false
+      })
+
     //await fetchFriendRequests()
     const friendReqRef = collection(db, 'users', currentUser.uid, 'friendRequests')
       onSnapshot(friendReqRef, (snapshot) => {
@@ -157,7 +163,7 @@ async function acceptRequest(request) {
       fromPhoto: request.fromPhoto
     })
 
-    await fetchFriends()
+    //await fetchFriends()
     //await fetchFriendRequests()
     //await fetchSentRequests()
 

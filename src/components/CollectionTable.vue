@@ -266,6 +266,7 @@ const refreshCollection = async () => {
 <template>
   <div>
     <ConfirmDialog />
+    <AddPopDialog v-model:visible="showAddDialog" @pop-added="refreshCollection" />
     <Dialog
       v-model:visible="showViewDialog"
       modal
@@ -312,6 +313,7 @@ const refreshCollection = async () => {
       :userId="user && user.uid ? user.uid : ''"
       @pop-edited="handlePopEdited"
     />
+
     <!-- Shared toolbar - always visible -->
     <div class="flex flex-wrap gap-2 items-center justify-between p-4">
       <IconField>
@@ -438,7 +440,6 @@ const refreshCollection = async () => {
           </template>
         </Column>
       </DataTable>
-      <AddPopDialog v-model:visible="showAddDialog" @pop-added="refreshCollection" />
       <Dialog v-model:visible="showImportResults" modal header="Import Results" :style="{ width: '400px' }">
         <div v-if="importResults" class="flex flex-col gap-3 p-4 text-center">
           <div class="text-green-600 text-xl font-bold">✓ {{ importResults.imported }} Pops added</div>
@@ -453,7 +454,7 @@ const refreshCollection = async () => {
           <p class="text-center">Importing your collection, please wait...</p>
         </div>
       </Dialog>
-      
+
     </div>
   </div>
 </template>
