@@ -67,6 +67,15 @@ function computeCategoryData() {
   }
 }
 
+const chartOptions = ref({
+  plugins: {
+    legend: {
+      display: false
+    }
+  },
+  cutout: '60%'
+})
+
 // Recompute whenever funkos updates
 watch(
   funkos,

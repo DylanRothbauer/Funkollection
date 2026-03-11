@@ -63,6 +63,7 @@ async function fetchFunkos() {
           series: data.series || '',
           image: userFunko.image || '',
           purchasePrice: userFunko.purchasePrice !== undefined ? userFunko.purchasePrice : '',
+          stickers: userFunko.stickers || [],
           ...data,
         }
       } else {
@@ -178,6 +179,8 @@ async function handleImportCSV(event) {
   })
 }
 
+
+
 onMounted(() => {
   const auth = getAuth()
   onAuthStateChanged(auth, async (firebaseUser) => {
@@ -252,6 +255,12 @@ function viewFunko(funko) {
 function handlePopEdited() {
   refreshCollection()
 }
+
+const refreshCollection = async () => {
+  await fetchFunkos()
+  await fetchFavorites()
+}
+
 </script>
 
 <template>
@@ -282,6 +291,18 @@ function handlePopEdited() {
           <span class="font-semibold">Purchase Price:</span> ${{
             Number(viewedFunko.purchasePrice).toFixed(2)
           }}
+        </div>
+        <div class="mb-3" v-if="viewedFunko.stickers && viewedFunko.stickers.length > 0">
+          <span class="font-semibold text-xl">Stickers / Exclusives:</span>
+          <div class="flex flex-wrap gap-2 mt-2 justify-center">
+            <span
+              v-for="sticker in viewedFunko.stickers"
+              :key="sticker"
+              class="sticker-badge"
+            >
+              {{ sticker }}
+            </span>
+          </div>
         </div>
       </div>
     </Dialog>
@@ -501,6 +522,16 @@ function handlePopEdited() {
   display: flex;
   gap: 0.5rem;
   justify-content: flex-end;
+}
+
+.sticker-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--funkollection-secondary);
+  color: white;
 }
 
 </style>

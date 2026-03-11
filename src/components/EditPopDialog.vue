@@ -15,6 +15,24 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:visible', 'pop-edited'])
 
+const stickerOptions = [
+  'Chase',
+  'Target Exclusive',
+  'Walmart Exclusive',
+  'GameStop Exclusive',
+  'Hot Topic Exclusive',
+  'Amazon Exclusive',
+  'BoxLunch Exclusive',
+  'FYE Exclusive',
+  'Glow in the Dark',
+  'Flocked',
+  'Metallic',
+  'SDCC Exclusive',
+  'NYCC Exclusive',
+  'Entertainment Earth Exclusive',
+  'Specialty Series',
+]
+
 const funkoName = ref('')
 const funkoTitle = ref('')
 const funkoSeries = ref('')
@@ -24,6 +42,7 @@ const imageFileName = ref('')
 const toast = useToast()
 const localVisible = ref(props.visible)
 const purchasePrice = ref('')
+const selectedStickers = ref([])
 
 watch(
   () => props.visible,
@@ -45,6 +64,7 @@ watch(
       imageFileName.value = ''
       purchasePrice.value =
         funko.purchasePrice !== undefined && funko.purchasePrice !== null ? funko.purchasePrice : ''
+      selectedStickers.value = funko.stickers || []
     }
   },
   { immediate: true },
@@ -71,6 +91,7 @@ const saveEditHandler = async () => {
       series: funkoSeries.value,
       image: funkoImage.value,
       purchasePrice: parseFloat(purchasePrice.value) || 0,
+      stickers: selectedStickers.value,
     })
     toast.add({ severity: 'success', summary: 'Updated', detail: 'Funko Pop updated!' })
     emit('pop-edited')
@@ -203,7 +224,7 @@ const search = (event) => {
     modal
     header="Edit Funko Pop"
     :style="{ width: '500px' }"
-    @hide="localVisible.value = false"
+    @hide="localVisible = false"
   >
     <form @submit.prevent="saveEditHandler" class="flex flex-col gap-5">
       <!-- Name -->
@@ -296,6 +317,26 @@ const search = (event) => {
         />
       </div>
 
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium text-gray-700">Stickers / Exclusives</label>
+        <div class="flex flex-wrap gap-2">
+          <label
+            v-for="sticker in stickerOptions"
+            :key="sticker"
+            class="sticker-chip"
+            :class="{ 'sticker-chip-selected': selectedStickers.includes(sticker) }"
+          >
+            <input
+              type="checkbox"
+              :value="sticker"
+              v-model="selectedStickers"
+              class="hidden"
+            />
+            {{ sticker }}
+          </label>
+        </div>
+      </div>
+
       <!-- Buttons -->
       <div class="flex justify-end gap-3 mt-4">
         <button
@@ -316,3 +357,27 @@ const search = (event) => {
     </form>
   </Dialog>
 </template>
+
+<style>
+.sticker-chip {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  font-size: 0.8rem;
+  cursor: pointer;
+  background: white;
+  color: #555;
+  transition: all 0.15s;
+  user-select: none;
+}
+.sticker-chip:hover {
+  border-color: var(--funkollection-secondary);
+  color: var(--funkollection-secondary);
+}
+.sticker-chip-selected {
+  background: var(--funkollection-secondary) !important;
+  color: white !important;
+  border-color: var(--funkollection-secondary) !important;
+}
+</style>

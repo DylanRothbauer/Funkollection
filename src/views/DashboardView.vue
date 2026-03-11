@@ -16,6 +16,7 @@ import { useAuthUser } from '../composables/useAuthUser.js'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { app, auth } from '../firebase.js'
 import { getCheckoutUrl } from '../../stripePayment.js'
+import StickerBreakdownCard from '../components/StickerBreakdownCard.vue'
 
 const isLoadingUserData = ref(false) // Change to true when fetching user data
 const isPremium = ref(false) // Track if user is a premium member
@@ -69,6 +70,7 @@ onMounted(() => {
       <EstimatedValueCard />
       <RecentAdditionsCard />
       <MostValuablePopsCard />
+      <StickerBreakdownCard />
     </div>
 
     <div v-if="error" class="text-red-500">Error: {{ error.message }}</div>

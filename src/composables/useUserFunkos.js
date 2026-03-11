@@ -52,7 +52,7 @@ async function fetchFunkos() {
 // The rest of your add, edit, delete functions remain unchanged
 // But remember to import getDoc (it's missing in your original code, needed for addFunkoPop)
 
-async function addFunkoPop({ id, name, title, series, image, purchasePrice }) {
+async function addFunkoPop({ id, name, title, series, image, purchasePrice, stickers = [] }) {
   if (!user.value) throw new Error('Not authenticated')
 
   const funkoDocRef = doc(db, 'FunkoPops', id)
@@ -70,6 +70,7 @@ async function addFunkoPop({ id, name, title, series, image, purchasePrice }) {
       lastAddedAt: new Date(),
       image: image || '',
       purchasePrice: purchasePrice || 0,
+      stickers: stickers || [],
     })
   } else {
     await setDoc(userFunkoRef, {
@@ -77,13 +78,14 @@ async function addFunkoPop({ id, name, title, series, image, purchasePrice }) {
       addedAt: new Date(),
       image: image || '',
       purchasePrice: purchasePrice || 0,
+      stickers: stickers || [],
     })
   }
 
   await fetchFunkos()
 }
 
-async function editFunkoPop({ id, name, title, series, image, purchasePrice }) {
+async function editFunkoPop({ id, name, title, series, image, purchasePrice, stickers = [] }) {
   if (!user.value) throw new Error('Not authenticated')
   if (!id) throw new Error('Funko ID is required')
 
@@ -94,6 +96,7 @@ async function editFunkoPop({ id, name, title, series, image, purchasePrice }) {
     series,
     image: image || '',
     purchasePrice: purchasePrice || 0,
+    stickers: stickers || [],
   })
 
   const funkoDocRef = doc(db, 'FunkoPops', id)

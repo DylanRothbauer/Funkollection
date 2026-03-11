@@ -123,6 +123,24 @@ const seriesOptions = [
   'Zodiac',
 ]
 
+const stickerOptions = [
+  'Chase',
+  'Target Exclusive',
+  'Walmart Exclusive',
+  'GameStop Exclusive',
+  'Hot Topic Exclusive',
+  'Amazon Exclusive',
+  'BoxLunch Exclusive',
+  'FYE Exclusive',
+  'Glow in the Dark',
+  'Flocked',
+  'Metallic',
+  'SDCC Exclusive',
+  'NYCC Exclusive',
+  'Entertainment Earth Exclusive',
+  'Specialty Series',
+]
+
 const toast = useToast()
 const funkoImage = ref('')
 const seriesSuggestions = ref([])
@@ -136,6 +154,7 @@ const error = ref('')
 const success = ref('')
 const imageFileName = ref('')
 const localVisible = ref(props.visible)
+const selectedStickers = ref([])
 
 onAuthStateChanged(auth, (firebaseUser) => {
   user.value = firebaseUser
@@ -170,6 +189,7 @@ const resetForm = () => {
   error.value = ''
   success.value = ''
   purchasePrice.value = ''
+  selectedStickers.value = []
 }
 
 watch(
@@ -191,6 +211,7 @@ const addFunkoPopHandler = async () => {
       series: selectedSeries.value,
       image: funkoImage.value,
       purchasePrice: parseFloat(purchasePrice.value) || 0,
+      stickers: selectedStickers.value,
     })
     toast.add({ severity: 'success', summary: 'Success', detail: 'Funko Pop added!' })
     emit('pop-added') // in case parent wants to do something
@@ -208,9 +229,10 @@ const addFunkoPopHandler = async () => {
     modal
     header="Add a Funko Pop"
     :style="{ width: '400px' }"
-    @hide="localVisible.value = false"
+    @hide="localVisible = false"
+    @pop-added="refreshCollection"
   >
-    <form @submit.prevent="addFunkoPop" class="flex flex-col gap-4">
+    <form @submit.prevent="addFunkoPopHandler" class="flex flex-col gap-4">
       <input v-model="funkoName" placeholder="Name" class="p-2 border rounded" required />
       <input v-model="funkoTitle" placeholder="Title" class="p-2 border rounded" required />
       <AutoComplete
@@ -260,6 +282,25 @@ const addFunkoPopHandler = async () => {
       </div>
       <div v-if="error" class="text-red-600">{{ error }}</div>
       <div v-if="success" class="text-green-600">{{ success }}</div>
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium text-gray-700">Stickers / Exclusives</label>
+        <div class="flex flex-wrap gap-2">
+          <label
+            v-for="sticker in stickerOptions"
+            :key="sticker"
+            class="sticker-chip"
+            :class="{ 'sticker-chip-selected': selectedStickers.includes(sticker) }"
+          >
+            <input
+              type="checkbox"
+              :value="sticker"
+              v-model="selectedStickers"
+              class="hidden"
+            />
+            {{ sticker }}
+          </label>
+        </div>
+      </div>
       <div class="flex justify-end gap-2">
         <button type="button" class="p-2 rounded border" @click="emit('update:visible', false)">
           Cancel
@@ -318,4 +359,5 @@ const addFunkoPopHandler = async () => {
     display: block;
   }
 }
+
 </style>
