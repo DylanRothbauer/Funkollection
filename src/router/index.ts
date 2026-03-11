@@ -11,6 +11,8 @@ import PrivacyPolicy from '@/views/PrivacyPolicy.vue'
 import TermsOfService from '@/views/TermsOfService.vue'
 import AboutUs from '@/views/AboutUs.vue'
 import FunkoChat from '@/views/FunkoChat.vue'
+import FriendsView from '@/views/FriendsView.vue'
+import FriendsCollectionView from '@/views/FriendsCollectionView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -58,6 +60,18 @@ const router = createRouter({
           path: 'funkochat',
           name: 'funkochat',
           component: FunkoChat,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'friends',
+          name: 'friends',
+          component: FriendsView,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'friends/:friendId',
+          name: 'friendCollection',
+          component: FriendsCollectionView,
           meta: { requiresAuth: true }
         },
       ],

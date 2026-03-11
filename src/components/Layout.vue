@@ -4,9 +4,12 @@ import { RouterLink, RouterView } from 'vue-router'
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'
 import { useRouter } from 'vue-router'
 import router from '@/router'
+import { collection, onSnapshot } from 'firebase/firestore'
+import { db } from '@/firebase.js'
 
 const isLoggedIn = ref(false)
 const showMobileNav = ref(false)
+const friendRequestCount = ref(0)
 let auth
 
 onMounted(() => {
@@ -14,11 +17,18 @@ onMounted(() => {
   onAuthStateChanged(auth, (user) => {
     if (user) {
       isLoggedIn.value = true
+      // Listen for friend requests in real time
+      const requestsRef = collection(db, 'users', user.uid, 'friendRequests')
+      onSnapshot(requestsRef, (snapshot) => {
+        friendRequestCount.value = snapshot.docs.length
+      })
     } else {
       isLoggedIn.value = false
+      friendRequestCount.value = 0
     }
   })
 })
+
 const handleSignOut = () => {
   signOut(auth).then(() => {
     router.push('/')
@@ -60,6 +70,10 @@ const closeMobileNav = () => {
             <div class="nav-section-label-mobile">✦ Premium</div>
             <RouterLink to="/dashboard" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Dashboard</RouterLink>
             <RouterLink to="/funkochat" class="nav-link text-xl py-2 whitespace-nowrap" @click="closeMobileNav" active-class="router-link-active">Funko Chat</RouterLink>
+            <RouterLink to="/friends" class="nav-link text-xl py-2 flex items-center gap-2" @click="closeMobileNav" active-class="router-link-active">
+              Friends
+              <span v-if="friendRequestCount > 0" class="nav-badge">{{ friendRequestCount }}</span>
+            </RouterLink>
             <div class="mobile-nav-divider"></div>
             <RouterLink to="/collection" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Collection</RouterLink>
             <RouterLink to="/favorites" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Favorites</RouterLink>
@@ -98,6 +112,14 @@ const closeMobileNav = () => {
                 <RouterLink to="/funkochat" class="flex nav-link text-xl items-center" active-class="router-link-active">
                   <i class="pi pi-sparkles pr-3 w-3 nav-icon"></i>
                   <span class="ml-2 flex-1">Funko Chat</span>
+                </RouterLink>
+              </div>
+
+              <div class="margin-vertical">
+                <RouterLink to="/friends" class="flex nav-link text-xl items-center" active-class="router-link-active">
+                  <i class="pi pi-users pr-3 w-3 nav-icon"></i>
+                  <span class="ml-2 flex-1">Friends</span>
+                  <span v-if="friendRequestCount > 0" class="nav-badge">{{ friendRequestCount }}</span>
                 </RouterLink>
               </div>
             </div>
@@ -329,6 +351,17 @@ const closeMobileNav = () => {
     padding-bottom: 2rem;
     padding-top: 48px; /* height of fixed header */
   }
+}
+
+.nav-badge {
+  background: #EF4444;
+  color: white;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
 }
 
 </style>
