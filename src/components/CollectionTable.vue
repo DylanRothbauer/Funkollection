@@ -138,31 +138,30 @@ async function handleImportCSV(event) {
   let updated = 0
   let errors = 0
 
-  for (const row of rows) {
-    const id = String(row['id'] || row['ID'] || '').trim()
-    if (!id) { errors++; continue }
+  await Promise.all(rows.map(async (row) => {
+  const id = String(row['id'] || row['ID'] || '').trim()
+  if (!id) { errors++; return }
 
-    try {
-      // Check if already in user's collection to track whether it's new or updated
-      const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', id)
-      const userFunkoSnap = await getDoc(userFunkoRef)
-      const alreadyOwned = userFunkoSnap.exists()
+  try {
+    const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', id)
+    const userFunkoSnap = await getDoc(userFunkoRef)
+    const alreadyOwned = userFunkoSnap.exists()
 
-      await addFunkoPop({
-        id,
-        name: String(row['name'] || row['Name'] || '').trim(),
-        title: String(row['title'] || row['Title'] || '').trim(),
-        series: String(row['series'] || row['Series'] || '').trim(),
-        image: String(row['image url'] || row['Image URL'] || '').trim(),
-        purchasePrice: parseFloat(row['purchase price'] || row['Purchase Price'] || 0) || 0,
-      })
+    await addFunkoPop({
+      id,
+      name: String(row['name'] || row['Name'] || '').trim(),
+      title: String(row['title'] || row['Title'] || '').trim(),
+      series: String(row['series'] || row['Series'] || '').trim(),
+      image: String(row['image url'] || row['Image URL'] || '').trim(),
+      purchasePrice: parseFloat(row['purchase price'] || row['Purchase Price'] || 0) || 0,
+    })
 
-      alreadyOwned ? updated++ : imported++
-    } catch (e) {
-      console.error('Import error on row:', row, e)
-      errors++
-    }
+    alreadyOwned ? updated++ : imported++
+  } catch (e) {
+    console.error('Import error on row:', row, e)
+    errors++
   }
+}))
 
   await fetchFunkos() // Refresh collection after import
   isImporting.value = false

@@ -9,6 +9,7 @@ import PaywallCard from '../components/PaywallCard.vue'
 
 const isPremium = ref(false)
 const isLoadingUserData = ref(true)
+const messagesRemaining = ref(20)
 
 const messages = ref([
   {
@@ -48,12 +49,20 @@ async function sendMessage(text) {
     const funkoChat = httpsCallable(functions, 'funkoChat')
     const result = await funkoChat({ message })
     messages.value.push({ role: 'assistant', text: result.data.reply })
+    if (!isAdmin.value && messagesRemaining.value > 0) messagesRemaining.value--
   } catch (error) {
-    messages.value.push({
-      role: 'assistant',
-      text: 'Sorry, I ran into an error. Please try again!',
-    })
-    console.error('Chat error:', error)
+    if (error.code === 'functions/resource-exhausted') {
+      messages.value.push({
+        role: 'assistant',
+        text: "You've reached your 20 message daily limit. Come back tomorrow! 🎯",
+      })
+    } else {
+      messages.value.push({
+        role: 'assistant',
+        text: 'Sorry, I ran into an error. Please try again!',
+      })
+      console.error('Chat error:', error)
+    }
   } finally {
     loading.value = false
     nextTick(() => scrollToBottom())
@@ -73,6 +82,8 @@ function handleKeydown(e) {
   }
 }
 
+const isAdmin = ref(false)
+
 onMounted(() => {
   const currentUser = auth.currentUser
   if (!currentUser) return
@@ -81,8 +92,18 @@ onMounted(() => {
   getDoc(userDocRef).then((docSnap) => {
     if (docSnap.exists() && docSnap.data().isAdmin) {
       isPremium.value = true
+      isAdmin.value = true
       isLoadingUserData.value = false
       return
+    }
+
+    // Load remaining messages from usage data
+    const userData = docSnap.data()
+    const today = new Date().toISOString().split('T')[0]
+    if (userData?.chatUsage?.date === today) {
+      messagesRemaining.value = Math.max(0, 20 - userData.chatUsage.count)
+    } else {
+      messagesRemaining.value = 20
     }
 
     const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
@@ -163,6 +184,10 @@ onMounted(() => {
 
       <!-- Input -->
       <div class="chat-input-area">
+        <div v-if="!isAdmin" class="messages-remaining" :class="{ 'messages-low': messagesRemaining <= 5 }">
+          <i class="pi pi-comment"></i>
+          {{ messagesRemaining }} messages remaining today
+        </div>
         <div class="chat-input-wrapper">
           <textarea
             v-model="input"
@@ -170,10 +195,11 @@ onMounted(() => {
             class="chat-input"
             rows="1"
             @keydown="handleKeydown"
+            :disabled="messagesRemaining <= 0 && !isAdmin"
           />
           <button
             class="send-btn"
-            :disabled="!input.trim() || loading"
+            :disabled="!input.trim() || loading || (messagesRemaining <= 0 && !isAdmin)"
             @click="sendMessage()"
           >
             <i class="pi pi-send"></i>
@@ -188,7 +214,7 @@ onMounted(() => {
   <div v-else class="paywall-container">
     <PaywallCard feature-name="Funko Chat" />
   </div>
-  
+
 </template>
 
 <style scoped>
@@ -463,7 +489,7 @@ onMounted(() => {
   font-weight: 700;
   color: #1a1a1a;
 }
-.bubble--assistant :deep(ol), 
+.bubble--assistant :deep(ol),
 .bubble--assistant :deep(ul) {
   margin: 0.5rem 0 0.5rem 1.2rem;
   padding: 0;
@@ -488,6 +514,22 @@ onMounted(() => {
   min-height: 100vh;
   color: #666;
   font-size: 1.125rem;
+}
+
+.messages-remaining {
+  font-size: 0.78rem;
+  color: #aaa;
+  text-align: right;
+  padding-right: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+}
+
+.messages-low {
+  color: #ef4444;
+  font-weight: 600;
 }
 
 </style>

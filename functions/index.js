@@ -15,19 +15,46 @@ exports.funkoChat = onCall({ cors: true }, async (request) => {
   }
 
   const userId = request.auth.uid
+
+  // Check admin status and daily limit
+  const userRef = db.collection('users').doc(userId)
+  const userSnap = await userRef.get()
+  const userData = userSnap.data()
+
+  if (!userData?.isAdmin) {
+    const usage = userData?.chatUsage
+    const today = new Date().toISOString().split('T')[0]
+
+    if (usage?.date === today && usage?.count >= 20) {
+      throw new HttpsError('resource-exhausted', 'Daily message limit reached.')
+    }
+
+    // Increment counter
+    await userRef.update({
+      chatUsage: {
+        count: usage?.date === today ? (usage.count + 1) : 1,
+        date: today
+      }
+    })
+  }
+
   const userMessage = request.data.message
 
   const funkosSnapshot = await db.collection('users').doc(userId).collection('funkos').get()
-  const funkos = funkosSnapshot.docs.map(doc => {
-    const data = doc.data()
+  const funkos = await Promise.all(funkosSnapshot.docs.map(async (userDoc) => {
+    const userData = userDoc.data()
+    const globalDoc = await db.collection('FunkoPops').doc(userDoc.id).get()
+    const globalData = globalDoc.exists ? globalDoc.data() : {}
+
     return {
-      id: doc.id,
-      name: data.name || '',
-      title: data.title || '',
-      series: data.series || '',
-      purchasePrice: data.purchasePrice || 0,
+      id: userDoc.id,
+      name: globalData.name || '',
+      title: globalData.title || '',
+      series: globalData.series || '',
+      purchasePrice: userData.purchasePrice || 0,
+      stickers: userData.stickers || [],
     }
-  })
+  }))
 
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_KEY,
