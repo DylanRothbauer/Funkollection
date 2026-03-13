@@ -79,13 +79,13 @@ onMounted(async () => {
   if (!isPremium.value) return
 
   // Fetch user's funkos and favorites in parallel for efficiency
-  const [funkosSnap, favoritesSnap] = await Promise.all([                          // NEW
+  const [funkosSnap, favoritesSnap] = await Promise.all([
     getDocs(collection(db, 'users', currentUser.uid, 'funkos')),
-    getDocs(collection(db, 'users', currentUser.uid, 'favorites')),                // NEW
+    getDocs(collection(db, 'users', currentUser.uid, 'favorites')),
   ])
 
   const funkos = funkosSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-  const favoritesCount = favoritesSnap.docs.length                                 // NEW
+  const favoritesCount = favoritesSnap.docs.length
 
   // Fetch global FunkoPops for series data
   const funkoDetails = await Promise.all(funkos.map(async (userFunko) => {
@@ -107,7 +107,7 @@ onMounted(async () => {
     count: totalCount,
     series: uniqueSeries,
     value: totalValue,
-    favorites: favoritesCount,                                                     // NEW
+    favorites: favoritesCount,
   }
 
   // Fetch already unlocked badges
@@ -123,7 +123,7 @@ onMounted(async () => {
     if (type === 'count')     earned = totalCount >= value
     if (type === 'series')    earned = uniqueSeries >= value
     if (type === 'value')     earned = totalValue >= value
-    if (type === 'favorites') earned = favoritesCount >= value                     // NEW
+    if (type === 'favorites') earned = favoritesCount >= value
 
     if (earned) {
       unlockedBadgeIds.value.add(badge.id)
