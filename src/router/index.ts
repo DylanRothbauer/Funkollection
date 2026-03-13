@@ -13,6 +13,8 @@ import AboutUs from '@/views/AboutUs.vue'
 import FunkoChat from '@/views/FunkoChat.vue'
 import FriendsView from '@/views/FriendsView.vue'
 import FriendsCollectionView from '@/views/FriendsCollectionView.vue'
+import BadgesView from '@/views/BadgesView.vue'
+import { Badge } from 'primevue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -73,6 +75,12 @@ const router = createRouter({
           name: 'friendCollection',
           component: FriendsCollectionView,
           meta: { requiresAuth: true }
+        },
+        {
+          path: 'badges',
+          name: 'badges',
+          component: BadgesView,
+          meta: {requiresAuth: true}
         },
       ],
     },

@@ -4,12 +4,13 @@ import { RouterLink, RouterView } from 'vue-router'
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'
 import { useRouter } from 'vue-router'
 import router from '@/router'
-import { collection, onSnapshot } from 'firebase/firestore'
+import { collection, onSnapshot, doc } from 'firebase/firestore'
 import { db } from '@/firebase.js'
 
 const isLoggedIn = ref(false)
 const showMobileNav = ref(false)
 const friendRequestCount = ref(0)
+const newBadgesCount = ref(0)
 let auth
 
 onMounted(() => {
@@ -22,6 +23,10 @@ onMounted(() => {
       onSnapshot(requestsRef, (snapshot) => {
         friendRequestCount.value = snapshot.docs.length
       })
+      onSnapshot(doc(db, 'users', user.uid), (snap) => {
+      const data = snap.data()
+      newBadgesCount.value = data?.newBadges?.length || 0
+    })
     } else {
       isLoggedIn.value = false
       friendRequestCount.value = 0
@@ -74,6 +79,10 @@ const closeMobileNav = () => {
               Friends
               <span v-if="friendRequestCount > 0" class="nav-badge">{{ friendRequestCount }}</span>
             </RouterLink>
+            <RouterLink to="/badges" class="nav-link text-xl py-2 flex items-center gap-2" @click="closeMobileNav" active-class="router-link-active">
+              Badges
+              <span v-if="newBadgesCount > 0" class="nav-badge">{{ newBadgesCount }}</span>
+            </RouterLink>
             <div class="mobile-nav-divider"></div>
             <RouterLink to="/collection" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Collection</RouterLink>
             <RouterLink to="/favorites" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Favorites</RouterLink>
@@ -96,7 +105,7 @@ const closeMobileNav = () => {
           </div>
             <div class="nav-section-label">✦ Premium</div>
             <div class="nav-premium-group">
-              
+
               <div class="margin-vertical">
                 <RouterLink
                   to="/dashboard"
@@ -120,6 +129,14 @@ const closeMobileNav = () => {
                   <i class="pi pi-users pr-3 w-3 nav-icon"></i>
                   <span class="ml-2 flex-1">Friends</span>
                   <span v-if="friendRequestCount > 0" class="nav-badge">{{ friendRequestCount }}</span>
+                </RouterLink>
+              </div>
+
+              <div class="margin-vertical">
+                <RouterLink to="/badges" class="flex nav-link text-xl items-center" active-class="router-link-active">
+                  <i class="pi pi-star pr-3 w-3 nav-icon"></i>
+                  <span class="ml-2 flex-1">Badges</span>
+                  <span v-if="newBadgesCount > 0" class="nav-badge">{{ newBadgesCount }}</span>
                 </RouterLink>
               </div>
             </div>
