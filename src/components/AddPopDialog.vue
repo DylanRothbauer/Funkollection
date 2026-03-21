@@ -155,6 +155,7 @@ const success = ref('')
 const imageFileName = ref('')
 const localVisible = ref(props.visible)
 const selectedStickers = ref([])
+const isDuplicate = ref(false)
 
 onAuthStateChanged(auth, (firebaseUser) => {
   user.value = firebaseUser
@@ -190,6 +191,7 @@ const resetForm = () => {
   success.value = ''
   purchasePrice.value = ''
   selectedStickers.value = []
+  isDuplicate.value = false
 }
 
 watch(
@@ -204,6 +206,18 @@ watch(localVisible, (val) => {
 
 const addFunkoPopHandler = async () => {
   try {
+    // Check for duplicate before adding
+    const existingDoc = await getDoc(doc(db, 'users', user.value.uid, 'funkos', funkoID.value))
+
+    if (existingDoc.exists() && !isDuplicate.value) {
+      // First attempt — warn the user
+      isDuplicate.value = true
+      error.value = `You already own this Pop! Click Add again to increase the quantity anyway.`
+      return
+    }
+
+    // Either not a duplicate, or user confirmed they want to add anyway
+    isDuplicate.value = false
     await addFunkoPop({
       id: funkoID.value,
       name: funkoName.value,
@@ -214,7 +228,7 @@ const addFunkoPopHandler = async () => {
       stickers: selectedStickers.value,
     })
     toast.add({ severity: 'success', summary: 'Success', detail: 'Funko Pop added!' })
-    emit('pop-added') // in case parent wants to do something
+    emit('pop-added')
     emit('update:visible', false)
     resetForm()
   } catch (e) {
