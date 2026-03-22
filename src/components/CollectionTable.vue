@@ -46,34 +46,41 @@ const isImporting = ref(false)
 
 async function fetchFunkos() {
   if (!user.value) return
-  // 1. Get all Funko docs from the user's subcollection (to get image and purchasePrice)
   const userFunkosSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
-  const userFunkos = userFunkosSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  const userFunkos = userFunkosSnapshot.docs.map((doc) => ({
+    docId: doc.id,           // always the Firestore document key
+    ...doc.data(),
+  }))
 
-  // 2. Fetch each FunkoPop's details from the global FunkoPops collection and merge image and purchasePrice from user doc
   const funkoDetails = await Promise.all(
     userFunkos.map(async (userFunko) => {
-      const funkoDoc = await getDoc(doc(db, 'FunkoPops', userFunko.id))
+      // Handle both old structure (no funkoId field, docId IS the funko number)
+      // and new structure (funkoId field exists, docId is auto-generated)
+      const lookupId = userFunko.funkoId || userFunko.docId
+
+      const funkoDoc = await getDoc(doc(db, 'FunkoPops', lookupId))
       if (funkoDoc.exists()) {
         const data = funkoDoc.data()
         return {
-          id: userFunko.id || '',
+          docId: userFunko.docId,
+          id: lookupId,
           name: data.name || '',
           title: data.title || '',
           series: data.series || '',
           image: userFunko.image || '',
           purchasePrice: userFunko.purchasePrice !== undefined ? userFunko.purchasePrice : '',
           stickers: userFunko.stickers || [],
-          ...data,
         }
       } else {
         return {
-          id: userFunko.id || '',
-          name: '',
-          title: '',
-          series: '',
+          docId: userFunko.docId,
+          id: lookupId,
+          name: userFunko.name || '',
+          title: userFunko.title || '',
+          series: userFunko.series || '',
           image: userFunko.image || '',
           purchasePrice: userFunko.purchasePrice !== undefined ? userFunko.purchasePrice : '',
+          stickers: userFunko.stickers || [],
         }
       }
     }),
@@ -135,45 +142,38 @@ async function handleImportCSV(event) {
   const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
 
   let imported = 0
-  let updated = 0
   let errors = 0
 
   await Promise.all(rows.map(async (row) => {
-  const id = String(row['id'] || row['ID'] || '').trim()
-  if (!id) { errors++; return }
+    const id = String(row['id'] || row['ID'] || '').trim()
+    if (!id) { errors++; return }
 
-  try {
-    const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', id)
-    const userFunkoSnap = await getDoc(userFunkoRef)
-    const alreadyOwned = userFunkoSnap.exists()
+    try {
+      await addFunkoPop({
+        id,
+        name: String(row['name'] || row['Name'] || '').trim(),
+        title: String(row['title'] || row['Title'] || '').trim(),
+        series: String(row['series'] || row['Series'] || '').trim(),
+        image: String(row['image url'] || row['Image URL'] || '').trim(),
+        purchasePrice: parseFloat(row['purchase price'] || row['Purchase Price'] || 0) || 0,
+      })
+      imported++
+    } catch (e) {
+      console.error('Import error on row:', row, e)
+      errors++
+    }
+  }))
 
-    await addFunkoPop({
-      id,
-      name: String(row['name'] || row['Name'] || '').trim(),
-      title: String(row['title'] || row['Title'] || '').trim(),
-      series: String(row['series'] || row['Series'] || '').trim(),
-      image: String(row['image url'] || row['Image URL'] || '').trim(),
-      purchasePrice: parseFloat(row['purchase price'] || row['Purchase Price'] || 0) || 0,
-    })
-
-    alreadyOwned ? updated++ : imported++
-  } catch (e) {
-    console.error('Import error on row:', row, e)
-    errors++
-  }
-}))
-
-  await fetchFunkos() // Refresh collection after import
+  await fetchFunkos()
   isImporting.value = false
-
   importInput.value.value = ''
-  importResults.value = { imported, updated, errors }
+  importResults.value = { imported, updated: 0, errors }
   showImportResults.value = true
 
   toast.add({
     severity: 'success',
     summary: 'Import Complete',
-    detail: `${imported} added, ${updated} quantity updated, ${errors} errors`,
+    detail: `${imported} added, ${errors} errors`,
     life: 4000
   })
 }
@@ -220,9 +220,9 @@ function editFunko(funko) {
 async function deleteFunko(funko) {
   if (!user.value) return
   try {
-    await deleteDoc(doc(db, 'users', user.value.uid, 'funkos', funko.id))
+    await deleteDoc(doc(db, 'users', user.value.uid, 'funkos', funko.docId)) // use docId
     toast.add({ severity: 'success', summary: 'Deleted', detail: 'Funko Pop deleted!', life: 3000 })
-    await fetchFunkos() // Ensure table updates after delete
+    await fetchFunkos()
   } catch (e) {
     toast.add({
       severity: 'error',

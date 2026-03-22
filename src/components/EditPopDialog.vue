@@ -38,6 +38,7 @@ const funkoTitle = ref('')
 const funkoSeries = ref('')
 const funkoImage = ref('')
 const funkoID = computed(() => props.funko?.id || '')
+const funkoDocId = computed(() => props.funko?.docId || '')
 const imageFileName = ref('')
 const toast = useToast()
 const localVisible = ref(props.visible)
@@ -70,13 +71,29 @@ watch(
   { immediate: true },
 )
 
-const handleImageUpload = (event) => {
+const compressImage = (dataUrl, maxWidth = 400) => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const scale = Math.min(1, maxWidth / img.width)
+      canvas.width = img.width * scale
+      canvas.height = img.height * scale
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL('image/jpeg', 0.7))
+    }
+    img.src = dataUrl
+  })
+}
+
+const handleImageUpload = async (event) => {
   const file = event.target.files[0]
   if (file) {
     imageFileName.value = file.name
     const reader = new FileReader()
-    reader.onload = (e) => {
-      funkoImage.value = e.target.result
+    reader.onload = async (e) => {
+      funkoImage.value = await compressImage(e.target.result) // compress here
     }
     reader.readAsDataURL(file)
   }
@@ -85,7 +102,8 @@ const handleImageUpload = (event) => {
 const saveEditHandler = async () => {
   try {
     await editFunkoPop({
-      id: funkoID.value,
+      docId: funkoDocId.value, // NEW — auto-generated Firestore key
+      id: funkoID.value,       // still needed for global FunkoPops update
       name: funkoName.value,
       title: funkoTitle.value,
       series: funkoSeries.value,
