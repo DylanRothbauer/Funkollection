@@ -18,6 +18,7 @@ const emit = defineEmits(['update:visible', 'pop-edited'])
 const stickerOptions = [
   'Chase',
   'Target Exclusive',
+  'TargetCon 2021 Limited Edition Exclusive',
   'Walmart Exclusive',
   'GameStop Exclusive',
   'Hot Topic Exclusive',
@@ -31,6 +32,25 @@ const stickerOptions = [
   'NYCC Exclusive',
   'Entertainment Earth Exclusive',
   'Specialty Series',
+  'Funko Special Edition',
+  'Funko Exclusive',
+  'Warner Bros. 100th Anniversary',
+  'Funko Exclusive 2022 Fall Convention Limited Edition',
+  'Funkon 2022 Limited Edition',
+  'Funko Exclusive 2018 Spring Convention',
+  'WWE Official Licensed Product',
+  'Official Major League Baseball',
+  'NFL',
+  'Barnes & Noble Exclusive',
+  'Scented',
+  'Rubiks',
+  'Special Edition',
+  'BAM! Exclusive',
+  '2022 Galactic Convention Exclusive',
+  '2019 Galactic Convention Exclusive',
+  'Real D 3D',
+  'Regal Cinemas Exclusive',
+  'PX Previews Exclusive'
 ]
 
 const funkoName = ref('')

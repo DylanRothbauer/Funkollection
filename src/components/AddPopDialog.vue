@@ -154,7 +154,12 @@ const stickerOptions = [
   'Scented',
   'Rubiks',
   'Special Edition',
-  'BAM! Exclusive'
+  'BAM! Exclusive',
+  '2022 Galactic Convention Exclusive',
+  '2019 Galactic Convention Exclusive',
+  'Real D 3D',
+  'Regal Cinemas Exclusive',
+  'PX Previews Exclusive'
 ]
 
 const toast = useToast()
@@ -244,17 +249,22 @@ const addFunkoPopHandler = async () => {
     const funkosSnap = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
     const duplicate = funkosSnap.docs.find(d => {
       const data = d.data()
-      return (
-        data.name?.toLowerCase() === funkoName.value.toLowerCase() &&
-        data.title?.toLowerCase() === funkoTitle.value.toLowerCase() &&
-        data.series?.toLowerCase() === selectedSeries.value.toLowerCase()
-      )
+      const nameMatch = data.name?.toLowerCase() === funkoName.value.toLowerCase()
+      const titleMatch = data.title?.toLowerCase() === funkoTitle.value.toLowerCase()
+      const seriesMatch = data.series?.toLowerCase() === selectedSeries.value.toLowerCase()
+
+      // If both have a non-empty funkoId, include it in the check
+      // If either is missing/blank (e.g. "2 Pack"), match on name + title + series only
+      const hasId = funkoID.value.trim() !== '' && data.funkoId?.trim() !== ''
+      const idMatch = hasId ? data.funkoId === funkoID.value : true
+
+      return nameMatch && titleMatch && seriesMatch && idMatch
     })
 
     if (duplicate && !isDuplicate.value) {
       // First attempt — warn user and store the docId
       isDuplicate.value = true
-      duplicateDocId.value = duplicate.id // store auto-generated docId
+      duplicateDocId.value = duplicate.id
       error.value = `You already have ${funkoName.value} from ${funkoTitle.value}! Click Add again to increase the quantity.`
       return
     }
@@ -306,7 +316,7 @@ const addFunkoPopHandler = async () => {
         required
         class="dropdown-select"
       />
-      <input v-model="funkoID" placeholder="ID" class="p-2 border rounded" required />
+      <input v-model="funkoID" placeholder="ID" class="p-2 border rounded" />
       <input
         v-model="purchasePrice"
         type="number"

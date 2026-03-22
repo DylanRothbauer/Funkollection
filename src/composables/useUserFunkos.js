@@ -48,18 +48,18 @@ async function addFunkoPop({ id, name, title, series, image, purchasePrice, stic
   if (!user.value) throw new Error('Not authenticated')
 
   // Write to global catalog with auto-generated key
-  // Check first to avoid true duplicates (same funkoId + name + title)
+  // If id is empty/blank, match on name + title only to avoid duplicates
   const catalogRef = collection(db, 'FunkoPops')
-  const catalogQuery = query(
-    catalogRef,
-    where('funkoId', '==', id),
-    where('name', '==', name),
-    where('title', '==', title)
-  )
+  const hasId = id?.trim() !== ''
+
+  const catalogQuery = hasId
+  ? query(catalogRef, where('funkoId', '==', id), where('name', '==', name), where('title', '==', title))
+  : query(catalogRef, where('name', '==', name), where('title', '==', title), where('series', '==', series))
+
   const catalogSnap = await getDocs(catalogQuery)
   if (catalogSnap.empty) {
     await addDoc(catalogRef, {
-      funkoId: id,
+      funkoId: id || '',
       name,
       title,
       series,
@@ -70,7 +70,7 @@ async function addFunkoPop({ id, name, title, series, image, purchasePrice, stic
   // Write to user's collection with auto-generated key
   // Store name/title/series directly — user doc is source of truth for display
   await addDoc(collection(db, 'users', user.value.uid, 'funkos'), {
-    funkoId: id,
+    funkoId: id || '',
     name,
     title,
     series,

@@ -41,20 +41,18 @@ exports.funkoChat = onCall({ cors: true }, async (request) => {
   const userMessage = request.data.message
 
   const funkosSnapshot = await db.collection('users').doc(userId).collection('funkos').get()
-  const funkos = await Promise.all(funkosSnapshot.docs.map(async (userDoc) => {
-    const userData = userDoc.data()
-    const globalDoc = await db.collection('FunkoPops').doc(userDoc.id).get()
-    const globalData = globalDoc.exists ? globalDoc.data() : {}
-
+  const funkos = funkosSnapshot.docs.map(userDoc => {
+    const data = userDoc.data()
     return {
-      id: userDoc.id,
-      name: globalData.name || '',
-      title: globalData.title || '',
-      series: globalData.series || '',
-      purchasePrice: userData.purchasePrice || 0,
-      stickers: userData.stickers || [],
+      id: data.funkoId || '',
+      name: data.name || '',
+      title: data.title || '',
+      series: data.series || '',
+      quantity: data.quantity || 1,
+      purchasePrice: data.purchasePrice || 0,
+      stickers: data.stickers || [],
     }
-  }))
+  })
 
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_KEY,

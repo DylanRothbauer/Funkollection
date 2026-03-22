@@ -218,32 +218,48 @@ const refreshCollection = async () => {
       header="Funko Pop Details"
       :style="{ width: '700px', maxWidth: '98vw' }"
     >
-      <div v-if="viewedFunko" class="flex flex-col items-center p-8">
+      <div v-if="viewedFunko" class="flex flex-col items-center p-6 gap-4">
+        <!-- Image -->
         <img
           v-if="viewedFunko.image"
           :src="viewedFunko.image"
           alt="Funko Image"
-          class="w-96 h-96 object-cover rounded mb-8 border shadow-lg"
+          class="w-64 h-64 object-cover rounded-xl border shadow-lg mb-2"
         />
-        <div class="text-3xl font-bold mb-4">{{ viewedFunko.name }}</div>
-        <div class="mb-3 text-xl">
-          <span class="font-semibold">Title:</span> {{ viewedFunko.title }}
+
+        <!-- Name -->
+        <div class="text-2xl font-bold text-center" style="font-family: 'Playfair Display', serif; color: var(--funkollection-primary)">
+          {{ viewedFunko.name }}
         </div>
-        <div class="mb-3 text-xl">
-          <span class="font-semibold">Series:</span> {{ viewedFunko.series }}
+
+        <!-- Details Table -->
+        <div class="w-full max-w-sm flex flex-col gap-0 rounded-xl overflow-hidden border" style="border-color: rgba(44,74,46,0.15)">
+          <div class="detail-row">
+            <span class="detail-label">Title</span>
+            <span class="detail-value">{{ viewedFunko.title }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Series</span>
+            <span class="detail-value">{{ viewedFunko.series }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">ID</span>
+            <span class="detail-value">{{ viewedFunko.id || '—' }}</span>
+          </div>
+          <div class="detail-row" v-if="viewedFunko.quantity && viewedFunko.quantity > 1">
+            <span class="detail-label">Quantity</span>
+            <span class="detail-value">{{ viewedFunko.quantity }}</span>
+          </div>
+          <div class="detail-row" v-if="viewedFunko.purchasePrice !== undefined">
+            <span class="detail-label">Purchase Price</span>
+            <span class="detail-value">${{ Number(viewedFunko.purchasePrice).toFixed(2) }}</span>
+          </div>
         </div>
-        <div class="mb-3 text-xl"><span class="font-semibold">ID:</span> {{ viewedFunko.id }}</div>
-        <div class="mb-3 text-xl" v-if="viewedFunko.quantity && viewedFunko.quantity > 1">
-          <span class="font-semibold">Quantity:</span> {{ viewedFunko.quantity }}
-        </div>
-        <div class="mb-3 text-xl" v-if="viewedFunko.purchasePrice !== undefined">
-          <span class="font-semibold">Purchase Price:</span> ${{
-            Number(viewedFunko.purchasePrice).toFixed(2)
-          }}
-        </div>
-        <div class="mb-3" v-if="viewedFunko.stickers && viewedFunko.stickers.length > 0">
-          <span class="font-semibold text-xl">Stickers / Exclusives:</span>
-          <div class="flex flex-wrap gap-2 mt-2 justify-center">
+
+        <!-- Stickers -->
+        <div v-if="viewedFunko.stickers && viewedFunko.stickers.length > 0" class="w-full max-w-sm">
+          <div class="detail-label mb-2" style="font-size: 0.8rem;">Stickers / Exclusives</div>
+          <div class="flex flex-wrap gap-2">
             <span
               v-for="sticker in viewedFunko.stickers"
               :key="sticker"
@@ -481,6 +497,38 @@ const refreshCollection = async () => {
   font-weight: 600;
   background: var(--funkollection-secondary);
   color: white;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(44,74,46,0.08);
+  background: white;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-row:nth-child(even) {
+  background: var(--funkollection-background);
+}
+
+.detail-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--funkollection-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-value {
+  font-size: 0.95rem;
+  color: var(--funkollection-text);
+  font-weight: 500;
+  text-align: right;
 }
 
 </style>
