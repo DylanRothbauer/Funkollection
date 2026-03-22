@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { auth, db } from '../firebase.js'
 import { onAuthStateChanged } from 'firebase/auth'
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDocs, setDoc, updateDoc, collection } from 'firebase/firestore'
 import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
 import { useUserFunkos } from '../composables/useUserFunkos'
@@ -161,13 +161,30 @@ onAuthStateChanged(auth, (firebaseUser) => {
   user.value = firebaseUser
 })
 
-const handleImageUpload = (event) => {
+// Compress image to stay under Firestore's 1MB document limit
+const compressImage = (dataUrl, maxWidth = 400) => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const scale = Math.min(1, maxWidth / img.width)
+      canvas.width = img.width * scale
+      canvas.height = img.height * scale
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      resolve(canvas.toDataURL('image/jpeg', 0.7)) // 70% quality JPEG
+    }
+    img.src = dataUrl
+  })
+}
+
+const handleImageUpload = async (event) => {
   const file = event.target.files[0]
   if (file) {
     imageFileName.value = file.name
     const reader = new FileReader()
-    reader.onload = (e) => {
-      funkoImage.value = e.target.result
+    reader.onload = async (e) => {
+      funkoImage.value = await compressImage(e.target.result) // compress here
     }
     reader.readAsDataURL(file)
   } else {
@@ -206,17 +223,23 @@ watch(localVisible, (val) => {
 
 const addFunkoPopHandler = async () => {
   try {
-    // Check for duplicate before adding
-    const existingDoc = await getDoc(doc(db, 'users', user.value.uid, 'funkos', funkoID.value))
+    // Check for duplicate by matching name AND title, not just ID
+    const funkosSnap = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
+    const duplicate = funkosSnap.docs.find(d => {
+      const data = d.data()
+      return (
+        data.name?.toLowerCase() === funkoName.value.toLowerCase() &&
+        data.title?.toLowerCase() === funkoTitle.value.toLowerCase()
+      )
+    })
 
-    if (existingDoc.exists() && !isDuplicate.value) {
-      // First attempt — warn the user
+    if (duplicate && !isDuplicate.value) {
       isDuplicate.value = true
-      error.value = `You already own this Pop! Click Add again to increase the quantity anyway.`
+      error.value = `You already have ${funkoName.value} from ${funkoTitle.value}! Click Add again to increase the quantity anyway.`
       return
     }
 
-    // Either not a duplicate, or user confirmed they want to add anyway
+    // Either not a duplicate or user confirmed
     isDuplicate.value = false
     await addFunkoPop({
       id: funkoID.value,
