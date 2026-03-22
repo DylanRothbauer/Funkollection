@@ -136,6 +136,16 @@ if (!initialized) {
   })
 }
 
+async function incrementFunkoQuantity(docId) {
+  if (!user.value) throw new Error('Not authenticated')
+  const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', docId)
+  const snap = await getDoc(userFunkoRef)
+  if (!snap.exists()) throw new Error('Funko not found')
+  const prevQty = snap.data().quantity || 1
+  await updateDoc(userFunkoRef, { quantity: prevQty + 1 })
+  await fetchFunkos()
+}
+
 function refresh() {
   return fetchFunkos()
 }
@@ -150,5 +160,6 @@ export function useUserFunkos() {
     addFunkoPop,
     editFunkoPop,
     deleteFunkoPop,
+    incrementFunkoQuantity,
   }
 }

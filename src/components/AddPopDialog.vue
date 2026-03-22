@@ -6,7 +6,7 @@ import { doc, getDocs, setDoc, updateDoc, collection } from 'firebase/firestore'
 import Dialog from 'primevue/dialog'
 import { useToast } from 'primevue/usetoast'
 import { useUserFunkos } from '../composables/useUserFunkos'
-const { addFunkoPop } = useUserFunkos()
+const { addFunkoPop, incrementFunkoQuantity  } = useUserFunkos()
 
 const props = defineProps({
   visible: Boolean,
@@ -86,6 +86,7 @@ const seriesOptions = [
   'Navy',
   'NBA Mascots',
   'NFL',
+  'Pin',
   'Pets',
   'Pusheen',
   'Racing',
@@ -126,6 +127,7 @@ const seriesOptions = [
 const stickerOptions = [
   'Chase',
   'Target Exclusive',
+  'TargetCon 2021 Limited Edition Exclusive',
   'Walmart Exclusive',
   'GameStop Exclusive',
   'Hot Topic Exclusive',
@@ -139,6 +141,20 @@ const stickerOptions = [
   'NYCC Exclusive',
   'Entertainment Earth Exclusive',
   'Specialty Series',
+  'Funko Special Edition',
+  'Funko Exclusive',
+  'Warner Bros. 100th Anniversary',
+  'Funko Exclusive 2022 Fall Convention Limited Edition',
+  'Funkon 2022 Limited Edition',
+  'Funko Exclusive 2018 Spring Convention',
+  'WWE Official Licensed Product',
+  'Official Major League Baseball',
+  'NFL',
+  'Barnes & Noble Exclusive',
+  'Scented',
+  'Rubiks',
+  'Special Edition',
+  'BAM! Exclusive'
 ]
 
 const toast = useToast()
@@ -156,6 +172,7 @@ const imageFileName = ref('')
 const localVisible = ref(props.visible)
 const selectedStickers = ref([])
 const isDuplicate = ref(false)
+const duplicateDocId = ref(null)
 
 onAuthStateChanged(auth, (firebaseUser) => {
   user.value = firebaseUser
@@ -209,6 +226,7 @@ const resetForm = () => {
   purchasePrice.value = ''
   selectedStickers.value = []
   isDuplicate.value = false
+  duplicateDocId.value = null
 }
 
 watch(
@@ -223,34 +241,41 @@ watch(localVisible, (val) => {
 
 const addFunkoPopHandler = async () => {
   try {
-    // Check for duplicate by matching name AND title, not just ID
     const funkosSnap = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
     const duplicate = funkosSnap.docs.find(d => {
       const data = d.data()
       return (
         data.name?.toLowerCase() === funkoName.value.toLowerCase() &&
-        data.title?.toLowerCase() === funkoTitle.value.toLowerCase()
+        data.title?.toLowerCase() === funkoTitle.value.toLowerCase() &&
+        data.series?.toLowerCase() === selectedSeries.value.toLowerCase()
       )
     })
 
     if (duplicate && !isDuplicate.value) {
+      // First attempt — warn user and store the docId
       isDuplicate.value = true
-      error.value = `You already have ${funkoName.value} from ${funkoTitle.value}! Click Add again to increase the quantity anyway.`
+      duplicateDocId.value = duplicate.id // store auto-generated docId
+      error.value = `You already have ${funkoName.value} from ${funkoTitle.value}! Click Add again to increase the quantity.`
       return
     }
 
-    // Either not a duplicate or user confirmed
-    isDuplicate.value = false
-    await addFunkoPop({
-      id: funkoID.value,
-      name: funkoName.value,
-      title: funkoTitle.value,
-      series: selectedSeries.value,
-      image: funkoImage.value,
-      purchasePrice: parseFloat(purchasePrice.value) || 0,
-      stickers: selectedStickers.value,
-    })
-    toast.add({ severity: 'success', summary: 'Success', detail: 'Funko Pop added!' })
+    if (isDuplicate.value && duplicateDocId.value) {
+      // User confirmed — increment quantity on existing doc
+      await incrementFunkoQuantity(duplicateDocId.value)
+    } else {
+      // Not a duplicate — add normally
+      await addFunkoPop({
+        id: funkoID.value,
+        name: funkoName.value,
+        title: funkoTitle.value,
+        series: selectedSeries.value,
+        image: funkoImage.value,
+        purchasePrice: parseFloat(purchasePrice.value) || 0,
+        stickers: selectedStickers.value,
+      })
+    }
+
+    toast.add({ severity: 'success', summary: 'Success', detail: isDuplicate.value ? 'Quantity updated!' : 'Funko Pop added!' })
     emit('pop-added')
     emit('update:visible', false)
     resetForm()
@@ -266,7 +291,7 @@ const addFunkoPopHandler = async () => {
     modal
     header="Add a Funko Pop"
     :style="{ width: '400px' }"
-    @hide="localVisible = false"
+    @hide="() => { resetForm(); localVisible = false }"
     @pop-added="refreshCollection"
   >
     <form @submit.prevent="addFunkoPopHandler" class="flex flex-col gap-4">
@@ -339,7 +364,7 @@ const addFunkoPopHandler = async () => {
         </div>
       </div>
       <div class="flex justify-end gap-2">
-        <button type="button" class="p-2 rounded border" @click="emit('update:visible', false)">
+        <button type="button" class="p-2 rounded border" @click="() => { resetForm(); emit('update:visible', false) }">
           Cancel
         </button>
         <button

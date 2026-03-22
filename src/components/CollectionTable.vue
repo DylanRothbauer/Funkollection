@@ -233,6 +233,9 @@ const refreshCollection = async () => {
           <span class="font-semibold">Series:</span> {{ viewedFunko.series }}
         </div>
         <div class="mb-3 text-xl"><span class="font-semibold">ID:</span> {{ viewedFunko.id }}</div>
+        <div class="mb-3 text-xl" v-if="viewedFunko.quantity && viewedFunko.quantity > 1">
+          <span class="font-semibold">Quantity:</span> {{ viewedFunko.quantity }}
+        </div>
         <div class="mb-3 text-xl" v-if="viewedFunko.purchasePrice !== undefined">
           <span class="font-semibold">Purchase Price:</span> ${{
             Number(viewedFunko.purchasePrice).toFixed(2)

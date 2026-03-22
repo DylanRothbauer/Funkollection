@@ -287,19 +287,28 @@ const search = (event) => {
       <!-- Image Upload -->
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-gray-700">Image</label>
-        <label
-          for="edit-funko-image-upload"
-          class="p-2 border rounded cursor-pointer bg-gray-100 hover:bg-gray-200 block text-center"
-        >
-          {{ imageFileName || 'Upload Image' }}
+
+        <label class="upload-label">
+          {{ imageFileName || (funkoImage ? 'Change Image' : 'Upload Image') }}
+          <input
+            type="file"
+            accept="image/*"
+            @change="handleImageUpload"
+            class="hidden"
+          />
         </label>
-        <input
-          id="edit-funko-image-upload"
-          type="file"
-          accept="image/*"
-          @change="handleImageUpload"
-          class="hidden"
-        />
+
+        <!-- Camera - mobile only -->
+        <label class="camera-btn">
+          <i class="pi pi-camera"></i> Take Photo
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            @change="handleImageUpload"
+            class="hidden"
+          />
+        </label>
       </div>
 
       <!-- Image Preview -->
@@ -398,4 +407,47 @@ const search = (event) => {
   color: white !important;
   border-color: var(--funkollection-secondary) !important;
 }
+
+.upload-label {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  background: #f3f4f6;
+  color: #555;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+
+.upload-label:hover {
+  background: #e5e7eb;
+}
+
+.camera-btn {
+  display: none;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  background: #f3f4f6;
+  color: #555;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+
+.camera-btn:hover {
+  background: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .camera-btn {
+    display: block;
+  }
+}
+
 </style>
