@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, query, where } from 'firebase/firestore'
 import { db } from '@/firebase'
 
 const user = ref(null)
@@ -12,13 +12,7 @@ let initialized = false
 async function fetchUserFunkos() {
   if (!user.value) return []
   const snapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
-  // docId is now the auto-generated key, funkoId is the actual Funko Pop number
   return snapshot.docs.map((doc) => ({ docId: doc.id, ...doc.data() }))
-}
-
-async function fetchGlobalFunkos() {
-  const snapshot = await getDocs(collection(db, 'FunkoPops'))
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
 }
 
 async function fetchFunkos() {
@@ -31,21 +25,19 @@ async function fetchFunkos() {
   error.value = null
 
   try {
-    const [userFunkos, globalFunkos] = await Promise.all([fetchUserFunkos(), fetchGlobalFunkos()])
+    const userFunkos = await fetchUserFunkos()
 
-    // Build a map of global funkos for quick lookup by funkoId
-    const globalMap = new Map(globalFunkos.map((g) => [g.id, g]))
-
-    // Merge user funkos with global data
-    // u.funkoId is the Funko Pop number, docId is the Firestore document key
-    funkos.value = userFunkos.map((u) => {
-      const global = globalMap.get(u.funkoId) || {}
-      return {
-        ...global,
-        ...u,
-        id: u.funkoId, // keep id as the funko number for display/editing
-      }
-    })
+    funkos.value = userFunkos.map((u) => ({
+      docId: u.docId,
+      id: u.funkoId,        // funkoId is always set now, no fallback needed
+      name: u.name || '',
+      title: u.title || '',
+      series: u.series || '',
+      image: u.image || '',
+      purchasePrice: u.purchasePrice ?? '',
+      stickers: u.stickers || [],
+      quantity: u.quantity || 1,
+    }))
   } catch (e) {
     error.value = e
   }
@@ -55,16 +47,33 @@ async function fetchFunkos() {
 async function addFunkoPop({ id, name, title, series, image, purchasePrice, stickers = [] }) {
   if (!user.value) throw new Error('Not authenticated')
 
-  // Save to global FunkoPops catalog if not already there
-  const funkoDocRef = doc(db, 'FunkoPops', id)
-  const funkoDocSnap = await getDoc(funkoDocRef)
-  if (!funkoDocSnap.exists()) {
-    await setDoc(funkoDocRef, { name, title, series, id, createdAt: new Date() })
+  // Write to global catalog with auto-generated key
+  // Check first to avoid true duplicates (same funkoId + name + title)
+  const catalogRef = collection(db, 'FunkoPops')
+  const catalogQuery = query(
+    catalogRef,
+    where('funkoId', '==', id),
+    where('name', '==', name),
+    where('title', '==', title)
+  )
+  const catalogSnap = await getDocs(catalogQuery)
+  if (catalogSnap.empty) {
+    await addDoc(catalogRef, {
+      funkoId: id,
+      name,
+      title,
+      series,
+      createdAt: new Date()
+    })
   }
 
-  // Always use addDoc to generate a unique key — allows duplicate funko IDs
+  // Write to user's collection with auto-generated key
+  // Store name/title/series directly — user doc is source of truth for display
   await addDoc(collection(db, 'users', user.value.uid, 'funkos'), {
-    funkoId: id,        // store the funko number as a field, not the key
+    funkoId: id,
+    name,
+    title,
+    series,
     quantity: 1,
     addedAt: new Date(),
     image: image || '',
@@ -79,17 +88,28 @@ async function editFunkoPop({ docId, id, name, title, series, image, purchasePri
   if (!user.value) throw new Error('Not authenticated')
   if (!docId) throw new Error('Document ID is required')
 
-  // Update user's funko using the auto-generated docId
+  // Update user doc using auto-generated docId
   const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', docId)
   await updateDoc(userFunkoRef, {
+    name,
+    title,
+    series,
     image: image || '',
     purchasePrice: purchasePrice || 0,
     stickers: stickers || [],
   })
 
-  // Update global catalog
-  const funkoDocRef = doc(db, 'FunkoPops', id)
-  await updateDoc(funkoDocRef, { name, title, series })
+  // Also update catalog entry if it exists (query by funkoId + name + title)
+  const catalogQuery = query(
+    collection(db, 'FunkoPops'),
+    where('funkoId', '==', id),
+    where('name', '==', name),
+    where('title', '==', title)
+  )
+  const catalogSnap = await getDocs(catalogQuery)
+  if (!catalogSnap.empty) {
+    await updateDoc(catalogSnap.docs[0].ref, { name, title, series })
+  }
 
   await fetchFunkos()
 }
@@ -98,9 +118,8 @@ async function deleteFunkoPop(docId) {
   if (!user.value) throw new Error('Not authenticated')
   if (!docId) throw new Error('Document ID is required')
 
-  // Delete using the auto-generated docId, not the funko number
-  const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', docId)
-  await deleteDoc(userFunkoRef)
+  // Delete using auto-generated docId
+  await deleteDoc(doc(db, 'users', user.value.uid, 'funkos', docId))
   await fetchFunkos()
 }
 

@@ -4,11 +4,8 @@ import {
   collection,
   getDocs,
   doc,
-  getDoc,
   deleteDoc,
   setDoc,
-  deleteField,
-  updateDoc,
 } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
@@ -26,9 +23,9 @@ import Dialog from 'primevue/dialog'
 import * as XLSX from 'xlsx'
 import { useUserFunkos } from '../composables/useUserFunkos'
 
-const { addFunkoPop } = useUserFunkos()
+// Use composable as single source of truth for funkos
+const { addFunkoPop, funkos, loading, refresh } = useUserFunkos()
 
-const funkos = ref([])
 const user = ref(null)
 const selectedFunkos = ref([])
 const showAddDialog = ref(false)
@@ -44,50 +41,6 @@ const importResults = ref(null)
 const showImportResults = ref(false)
 const isImporting = ref(false)
 
-async function fetchFunkos() {
-  if (!user.value) return
-  const userFunkosSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'funkos'))
-  const userFunkos = userFunkosSnapshot.docs.map((doc) => ({
-    docId: doc.id,           // always the Firestore document key
-    ...doc.data(),
-  }))
-
-  const funkoDetails = await Promise.all(
-    userFunkos.map(async (userFunko) => {
-      // Handle both old structure (no funkoId field, docId IS the funko number)
-      // and new structure (funkoId field exists, docId is auto-generated)
-      const lookupId = userFunko.funkoId || userFunko.docId
-
-      const funkoDoc = await getDoc(doc(db, 'FunkoPops', lookupId))
-      if (funkoDoc.exists()) {
-        const data = funkoDoc.data()
-        return {
-          docId: userFunko.docId,
-          id: lookupId,
-          name: data.name || '',
-          title: data.title || '',
-          series: data.series || '',
-          image: userFunko.image || '',
-          purchasePrice: userFunko.purchasePrice !== undefined ? userFunko.purchasePrice : '',
-          stickers: userFunko.stickers || [],
-        }
-      } else {
-        return {
-          docId: userFunko.docId,
-          id: lookupId,
-          name: userFunko.name || '',
-          title: userFunko.title || '',
-          series: userFunko.series || '',
-          image: userFunko.image || '',
-          purchasePrice: userFunko.purchasePrice !== undefined ? userFunko.purchasePrice : '',
-          stickers: userFunko.stickers || [],
-        }
-      }
-    }),
-  )
-  funkos.value = funkoDetails
-}
-
 async function fetchFavorites() {
   if (!user.value) return
   const favSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'favorites'))
@@ -96,6 +49,7 @@ async function fetchFavorites() {
 
 async function toggleFavorite(funko) {
   if (!user.value) return
+  // Favorites use funko.id (the funko number) as the key
   const favRef = doc(db, 'users', user.value.uid, 'favorites', funko.id)
   if (favorites.value.includes(funko.id)) {
     await deleteDoc(favRef)
@@ -164,10 +118,10 @@ async function handleImportCSV(event) {
     }
   }))
 
-  await fetchFunkos()
+  await refresh()
   isImporting.value = false
   importInput.value.value = ''
-  importResults.value = { imported, updated: 0, errors }
+  importResults.value = { imported, errors }
   showImportResults.value = true
 
   toast.add({
@@ -178,27 +132,19 @@ async function handleImportCSV(event) {
   })
 }
 
-
-
 onMounted(() => {
   const auth = getAuth()
   onAuthStateChanged(auth, async (firebaseUser) => {
     user.value = firebaseUser
     if (user.value) {
-      await fetchFunkos()
       await fetchFavorites()
     }
   })
-  loading.value = false
 })
 
 function isFavorite(funko) {
   return favorites.value.includes(funko.id)
 }
-
-onMounted(() => {
-  loading.value = false
-})
 
 const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -207,22 +153,24 @@ const filters = ref({
   title: { value: null, matchMode: FilterMatchMode.CONTAINS },
   series: { value: null, matchMode: FilterMatchMode.CONTAINS },
 })
-const loading = ref(true)
 const dt = ref()
 
 const exportCSV = () => {
   dt.value.exportCSV()
 }
+
 function editFunko(funko) {
   editingFunko.value = funko
   showEditDialog.value = true
 }
+
 async function deleteFunko(funko) {
   if (!user.value) return
   try {
-    await deleteDoc(doc(db, 'users', user.value.uid, 'funkos', funko.docId)) // use docId
+    // Use docId (auto-generated key) not funko.id (funko number)
+    await deleteDoc(doc(db, 'users', user.value.uid, 'funkos', funko.docId))
     toast.add({ severity: 'success', summary: 'Deleted', detail: 'Funko Pop deleted!', life: 3000 })
-    await fetchFunkos()
+    await refresh()
   } catch (e) {
     toast.add({
       severity: 'error',
@@ -241,7 +189,6 @@ function confirmDeleteFunko(funko) {
     acceptLabel: 'Yes',
     rejectLabel: 'No',
     acceptClass: 'p-button-danger',
-    rejectClass: '',
     accept: () => deleteFunko(funko),
   })
 }
@@ -256,10 +203,9 @@ function handlePopEdited() {
 }
 
 const refreshCollection = async () => {
-  await fetchFunkos()
+  await refresh()
   await fetchFavorites()
 }
-
 </script>
 
 <template>
