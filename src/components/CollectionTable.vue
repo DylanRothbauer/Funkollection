@@ -295,7 +295,7 @@ const refreshCollection = async () => {
     </div>
     <!-- Mobile Card View (visible on small screens only) -->
     <div class="mobile-cards md:hidden">
-      <div v-for="funko in filteredFunkos" :key="funko.id" class="mobile-card">
+      <div v-for="funko in filteredFunkos" :key="funko.docId" class="mobile-card">
         <div class="mobile-card-header">
           <img v-if="funko.image" :src="funko.image" :alt="funko.name" class="mobile-card-img" />
           <div>
