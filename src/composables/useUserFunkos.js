@@ -127,11 +127,18 @@ if (!initialized) {
   initialized = true
   const auth = getAuth()
   onAuthStateChanged(auth, async (firebaseUser) => {
-    user.value = firebaseUser
     if (firebaseUser) {
-      await fetchFunkos()
+      // Only fetch if user actually changed
+      if (user.value?.uid !== firebaseUser.uid) {
+        funkos.value = [] // clear before fetching new user's data
+        user.value = firebaseUser
+        await fetchFunkos()
+      }
     } else {
+      // User logged out — clear everything
+      user.value = null
       funkos.value = []
+      loading.value = false
     }
   })
 }

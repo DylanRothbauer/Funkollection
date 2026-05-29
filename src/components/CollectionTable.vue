@@ -320,8 +320,8 @@ const refreshCollection = async () => {
       <DataTable
         ref="dt"
         v-model:selection="selectedFunkos"
-        :value="funkos"
-        dataKey="id"
+        :value="filteredFunkos"
+        dataKey="docId"
         :paginator="true"
         :rows="10"
         :filters="filters"
