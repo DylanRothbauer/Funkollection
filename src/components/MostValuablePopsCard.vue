@@ -26,7 +26,7 @@ const mostValuableFunkos = computed(() => {
     <ul v-else class="flex flex-col gap-3">
       <li v-for="funko in mostValuableFunkos" :key="funko.id" class="flex items-center gap-3">
         <img
-          :src="funko.image || '/placeholder.png'"
+          :src="funko.image || '/placeholder.svg'"
           alt="Funko"
           class="w-12 h-12 object-cover rounded border"
         />

@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { db } from '@/firebase'
-import { collection, getDocs, getDoc, doc } from 'firebase/firestore'
+import { collection, getDocs, getDoc, doc, query, where } from 'firebase/firestore'
 import { useToast } from 'primevue/usetoast'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
@@ -20,22 +20,60 @@ async function fetchFavorites() {
   const favIds = favSnapshot.docs.map((doc) => doc.id)
   const funkoDetails = await Promise.all(
     favIds.map(async (id) => {
-      const funkoDoc = await getDoc(doc(db, 'FunkoPops', id))
-      if (funkoDoc.exists()) {
-        const data = funkoDoc.data()
-        const userFunkoDoc = await getDoc(doc(db, 'users', user.value.uid, 'funkos', id))
-        const userData = userFunkoDoc.exists() ? userFunkoDoc.data() : {}
+      // First, try to resolve as a user's funko docId
+      const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', id)
+      const userFunkoSnap = await getDoc(userFunkoRef)
+      if (userFunkoSnap.exists()) {
+        const ud = userFunkoSnap.data()
+        // Try to fallback to catalog image if available via funkoId
+        let catalogImage = ''
+        if (ud.funkoId) {
+          const q = query(collection(db, 'FunkoPops'), where('funkoId', '==', ud.funkoId))
+          const snap = await getDocs(q)
+          if (!snap.empty) catalogImage = snap.docs[0].data().image || ''
+        }
         return {
           id,
-          name: userData.name || data.name || '',
-          title: userData.title || data.title || '',
-          series: userData.series || data.series || '',
-          image: userData.image || data.image || '',
-          purchasePrice: userData.purchasePrice !== undefined ? userData.purchasePrice : '',
+          name: ud.name || '',
+          title: ud.title || '',
+          series: ud.series || '',
+          image: ud.image || catalogImage || '',
+          purchasePrice: ud.purchasePrice !== undefined ? ud.purchasePrice : '',
         }
-      } else {
-        return { id, name: '', title: '', series: '', image: '' }
       }
+
+      // Next, try FunkoPops by document id
+      const catalogDocRef = doc(db, 'FunkoPops', id)
+      const catalogDocSnap = await getDoc(catalogDocRef)
+      if (catalogDocSnap.exists()) {
+        const data = catalogDocSnap.data()
+        return {
+          id,
+          name: data.name || '',
+          title: data.title || '',
+          series: data.series || '',
+          image: data.image || '',
+          purchasePrice: '',
+        }
+      }
+
+      // Finally, try querying FunkoPops by the funkoId field
+      const q2 = query(collection(db, 'FunkoPops'), where('funkoId', '==', id))
+      const q2snap = await getDocs(q2)
+      if (!q2snap.empty) {
+        const data = q2snap.docs[0].data()
+        return {
+          id,
+          name: data.name || '',
+          title: data.title || '',
+          series: data.series || '',
+          image: data.image || '',
+          purchasePrice: '',
+        }
+      }
+
+      // Unknown favorite; return placeholder
+      return { id, name: '', title: '', series: '', image: '' }
     }),
   )
   favorites.value = funkoDetails

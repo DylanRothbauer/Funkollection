@@ -39,9 +39,9 @@ function formatDate(date) {
     </div>
 
     <ul v-else class="flex flex-col gap-3">
-      <li v-for="funko in recentFunkos" :key="funko.id" class="flex items-center gap-3">
+      <li v-for="funko in recentFunkos" :key="funko.docId" class="flex items-center gap-3">
         <img
-          :src="funko.image || '/placeholder.png'"
+          :src="funko.image || '/placeholder.svg'"
           alt="Funko"
           class="w-12 h-12 object-cover rounded border"
         />

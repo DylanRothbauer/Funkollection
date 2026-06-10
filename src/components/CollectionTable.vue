@@ -49,11 +49,11 @@ async function fetchFavorites() {
 
 async function toggleFavorite(funko) {
   if (!user.value) return
-  // Favorites use funko.id (the funko number) as the key
-  const favRef = doc(db, 'users', user.value.uid, 'favorites', funko.id)
-  if (favorites.value.includes(funko.id)) {
+  // Favorites use funko.docId (the user's funko document ID) as the key
+  const favRef = doc(db, 'users', user.value.uid, 'favorites', funko.docId)
+  if (favorites.value.includes(funko.docId)) {
     await deleteDoc(favRef)
-    favorites.value = favorites.value.filter((id) => id !== funko.id)
+    favorites.value = favorites.value.filter((id) => id !== funko.docId)
     toast.add({
       severity: 'info',
       summary: 'Removed from Favorites',
@@ -61,8 +61,8 @@ async function toggleFavorite(funko) {
       life: 2000,
     })
   } else {
-    await setDoc(favRef, { addedAt: new Date().toISOString() })
-    favorites.value.push(funko.id)
+    await setDoc(favRef, { addedAt: new Date().toISOString(), funkoDocId: funko.docId, funkoId: funko.id })
+    favorites.value.push(funko.docId)
     toast.add({
       severity: 'success',
       summary: 'Added to Favorites',
@@ -143,7 +143,7 @@ onMounted(() => {
 })
 
 function isFavorite(funko) {
-  return favorites.value.includes(funko.id)
+  return favorites.value.includes(funko.docId)
 }
 
 const filters = ref({

@@ -29,7 +29,7 @@ async function fetchFunkos() {
 
     funkos.value = userFunkos.map((u) => ({
       docId: u.docId,
-      id: u.funkoId,        // funkoId is always set now, no fallback needed
+      id: u.funkoId || u.docId, // prefer funkoId, fall back to docId
       name: u.name || '',
       title: u.title || '',
       series: u.series || '',
@@ -37,6 +37,7 @@ async function fetchFunkos() {
       purchasePrice: u.purchasePrice ?? '',
       stickers: u.stickers || [],
       quantity: u.quantity || 1,
+      addedAt: u.addedAt || null,
     }))
   } catch (e) {
     error.value = e

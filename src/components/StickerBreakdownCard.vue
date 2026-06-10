@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useUserFunkos } from '../composables/useUserFunkos'
 
 const { funkos, loading } = useUserFunkos()
@@ -17,6 +17,13 @@ const stickerBreakdown = computed(() => {
   })
   return Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
+})
+
+// UI: show top N with option to expand
+const showAll = ref(false)
+const TOP_N = 5
+const displayedStickers = computed(() => {
+  return showAll.value ? stickerBreakdown.value : stickerBreakdown.value.slice(0, TOP_N)
 })
 
 const totalStickered = computed(() => {
@@ -68,7 +75,7 @@ function getColor(sticker) {
 
     <div v-else class="flex flex-col gap-2 w-full">
       <div
-        v-for="([sticker, count]) in stickerBreakdown"
+        v-for="([sticker, count]) in displayedStickers"
         :key="sticker"
         class="flex items-center justify-between py-2 px-3 rounded-lg"
         style="background: #f9f9f9"
@@ -92,6 +99,15 @@ function getColor(sticker) {
         >
           {{ count }}
         </span>
+      </div>
+
+      <div v-if="stickerBreakdown.length > TOP_N" class="text-center mt-3">
+        <button
+          @click="showAll = !showAll"
+          class="px-3 py-1 rounded-md bg-transparent border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
+        >
+          {{ showAll ? 'Show less' : ('Show ' + (stickerBreakdown.length - TOP_N) + ' more') }}
+        </button>
       </div>
     </div>
 
