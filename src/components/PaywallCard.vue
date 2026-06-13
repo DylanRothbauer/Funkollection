@@ -19,6 +19,7 @@ const { user, loading } = useAuthUser()
 const membershipTier = ref('Standard Member')
 const isLoadingUserData = ref(false)
 const isAdmin = ref(false)
+const isLoadingCheckout = ref(false)
 
 const fetchMembershipTier = async () => {
   if (!user.value) return
@@ -39,14 +40,19 @@ const fetchMembershipTier = async () => {
 }
 
 const upgradeToPremium = async () => {
+  isLoadingCheckout.value = true
+  console.log('Button clicked!')
   const priceId = "price_1T86oGLancjOeFyBC9PctmbE"
   try {
     const { getApp } = await import('firebase/app')
     const firebaseApp = getApp()
+    console.log('Calling getCheckoutUrl...')
     const checkoutUrl = await getCheckoutUrl(firebaseApp, priceId)
+    console.log('Got checkout URL:', checkoutUrl)
     window.location.href = checkoutUrl
   } catch (error) {
-    console.error('Error during upgrade:', error)
+    console.error('Error during upgrade:', error.message, error)
+    isLoadingCheckout.value = false
   }
 }
 
@@ -94,8 +100,9 @@ onMounted(() => {
         </div>
 
         <Button
-          label="Upgrade to Premium"
-          icon="pi pi-arrow-right"
+          :label="isLoadingCheckout ? 'Loading...' : 'Upgrade to Premium'"
+          :icon="isLoadingCheckout ? 'pi pi-spin pi-spinner' : 'pi pi-arrow-right'"
+          :disabled="isLoadingCheckout"
           @click="upgradeToPremium"
           class="upgrade-button"
         />
