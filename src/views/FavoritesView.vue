@@ -4,8 +4,8 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth'
 import { db } from '@/firebase'
 import { collection, getDocs, getDoc, doc, query, where } from 'firebase/firestore'
 import { useToast } from 'primevue/usetoast'
-import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
+import PopDetailsDialog from '@/components/PopDetailsDialog.vue'
 
 const user = ref(null)
 const favorites = ref([])
@@ -17,63 +17,64 @@ const toast = useToast()
 async function fetchFavorites() {
   if (!user.value) return
   const favSnapshot = await getDocs(collection(db, 'users', user.value.uid, 'favorites'))
-  const favIds = favSnapshot.docs.map((doc) => doc.id)
   const funkoDetails = await Promise.all(
-    favIds.map(async (id) => {
-      // First, try to resolve as a user's funko docId
-      const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', id)
-      const userFunkoSnap = await getDoc(userFunkoRef)
-      if (userFunkoSnap.exists()) {
-        const ud = userFunkoSnap.data()
-        // Try to fallback to catalog image if available via funkoId
-        let catalogImage = ''
-        if (ud.funkoId) {
-          const q = query(collection(db, 'FunkoPops'), where('funkoId', '==', ud.funkoId))
-          const snap = await getDocs(q)
-          if (!snap.empty) catalogImage = snap.docs[0].data().image || ''
-        }
-        return {
-          id,
-          name: ud.name || '',
-          title: ud.title || '',
-          series: ud.series || '',
-          image: ud.image || catalogImage || '',
-          purchasePrice: ud.purchasePrice !== undefined ? ud.purchasePrice : '',
+    favSnapshot.docs.map(async (favDoc) => {
+      const favoriteData = favDoc.data()
+      const favoriteKey = favDoc.id
+      const favoriteFunkoId = favoriteData?.funkoId || null
+
+      // Resolve favorites from the user's own collection entry if available.
+      if (favoriteData?.funkoDocId) {
+        const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', favoriteData.funkoDocId)
+        const userFunkoSnap = await getDoc(userFunkoRef)
+        if (userFunkoSnap.exists()) {
+          const ud = userFunkoSnap.data()
+          let catalogImage = ''
+          if (ud.funkoId) {
+            const q = query(collection(db, 'FunkoPops'), where('funkoId', '==', ud.funkoId))
+            const snap = await getDocs(q)
+            if (!snap.empty) catalogImage = snap.docs[0].data().image || ''
+          }
+          return {
+            docId: favoriteKey,
+            id: ud.funkoId || favoriteFunkoId || favoriteKey,
+            name: ud.name || '',
+            title: ud.title || '',
+            series: ud.series || '',
+            image: ud.image || catalogImage || '',
+            purchasePrice: ud.purchasePrice !== undefined ? ud.purchasePrice : '',
+          }
         }
       }
 
-      // Next, try FunkoPops by document id
-      const catalogDocRef = doc(db, 'FunkoPops', id)
-      const catalogDocSnap = await getDoc(catalogDocRef)
-      if (catalogDocSnap.exists()) {
-        const data = catalogDocSnap.data()
-        return {
-          id,
-          name: data.name || '',
-          title: data.title || '',
-          series: data.series || '',
-          image: data.image || '',
-          purchasePrice: '',
+      // If the favorite record stores the actual Funko pop ID, use it.
+      if (favoriteFunkoId) {
+        const q = query(collection(db, 'FunkoPops'), where('funkoId', '==', favoriteFunkoId))
+        const snap = await getDocs(q)
+        if (!snap.empty) {
+          const data = snap.docs[0].data()
+          return {
+            docId: favoriteKey,
+            id: favoriteFunkoId,
+            name: data.name || '',
+            title: data.title || '',
+            series: data.series || '',
+            image: data.image || '',
+            purchasePrice: '',
+          }
         }
       }
 
-      // Finally, try querying FunkoPops by the funkoId field
-      const q2 = query(collection(db, 'FunkoPops'), where('funkoId', '==', id))
-      const q2snap = await getDocs(q2)
-      if (!q2snap.empty) {
-        const data = q2snap.docs[0].data()
-        return {
-          id,
-          name: data.name || '',
-          title: data.title || '',
-          series: data.series || '',
-          image: data.image || '',
-          purchasePrice: '',
-        }
+      // Fallback: preserve the favorite doc ID internally, but do not show it as the pop ID unless no other data exists.
+      return {
+        docId: favoriteKey,
+        id: favoriteFunkoId || favoriteKey,
+        name: favoriteData?.name || '',
+        title: favoriteData?.title || '',
+        series: favoriteData?.series || '',
+        image: favoriteData?.image || '',
+        purchasePrice: favoriteData?.purchasePrice ?? '',
       }
-
-      // Unknown favorite; return placeholder
-      return { id, name: '', title: '', series: '', image: '' }
     }),
   )
   favorites.value = funkoDetails
@@ -98,7 +99,7 @@ onMounted(() => {
 
 <template>
   <div class="card">
-    <h2 class="text-2xl font-bold mb-4">My Favorites</h2>
+    <h2 class="text-2xl font-bold mb-4" style="padding-bottom: 1rem;">My Favorites</h2>
 
     <div v-if="loading" class="p-4">Loading favorites...</div>
     <div v-else>
@@ -107,7 +108,7 @@ onMounted(() => {
 
         <!-- Mobile Card View -->
         <div class="mobile-cards">
-          <div v-for="funko in favorites" :key="funko.id" class="mobile-card">
+          <div v-for="funko in favorites" :key="funko.docId || funko.id" class="mobile-card">
             <div class="mobile-card-header">
               <img v-if="funko.image" :src="funko.image" :alt="funko.name" class="mobile-card-img" />
               <div>
@@ -134,7 +135,7 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="funko in favorites" :key="funko.id" class="hover:bg-gray-100">
+            <tr v-for="funko in favorites" :key="funko.docId || funko.id" class="hover:bg-gray-100">
               <td class="px-4 py-2">
                 <img v-if="funko.image" :src="funko.image" alt="Funko Image" class="w-16 h-16 object-cover rounded" />
               </td>
@@ -152,28 +153,7 @@ onMounted(() => {
     </div>
 
     <!-- View Dialog -->
-    <Dialog
-      v-model:visible="showViewDialog"
-      modal
-      header="Funko Pop Details"
-      :style="{ width: '700px', maxWidth: '98vw' }"
-    >
-      <div v-if="viewedFunko" class="flex flex-col items-center p-8">
-        <img
-          v-if="viewedFunko.image"
-          :src="viewedFunko.image"
-          alt="Funko Image"
-          class="w-96 h-96 object-cover rounded mb-8 border shadow-lg"
-        />
-        <div class="text-3xl font-bold mb-4">{{ viewedFunko.name }}</div>
-        <div class="mb-3 text-xl"><span class="font-semibold">Title:</span> {{ viewedFunko.title }}</div>
-        <div class="mb-3 text-xl"><span class="font-semibold">Series:</span> {{ viewedFunko.series }}</div>
-        <div class="mb-3 text-xl"><span class="font-semibold">ID:</span> {{ viewedFunko.id }}</div>
-        <div class="mb-3 text-xl" v-if="viewedFunko.purchasePrice !== undefined">
-          <span class="font-semibold">Purchase Price:</span> ${{ Number(viewedFunko.purchasePrice).toFixed(2) }}
-        </div>
-      </div>
-    </Dialog>
+    <PopDetailsDialog v-model:visible="showViewDialog" :funko="viewedFunko" />
   </div>
 </template>
 

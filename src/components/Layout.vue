@@ -73,20 +73,37 @@ const closeMobileNav = () => {
           </button>
           <div class="flex flex-col flex-1 gap-2">
             <div class="nav-section-label-mobile">✦ Premium</div>
-            <RouterLink to="/dashboard" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Dashboard</RouterLink>
-            <RouterLink to="/funkochat" class="nav-link text-xl py-2 whitespace-nowrap" @click="closeMobileNav" active-class="router-link-active">Funko Chat</RouterLink>
+            <RouterLink to="/dashboard" class="nav-link text-xl py-2 flex items-center" @click="closeMobileNav" active-class="router-link-active">
+              <i class="pi pi-th-large pr-3 w-3 nav-icon"></i>
+              <span class="ml-2 flex-1">Dashboard</span>
+            </RouterLink>
+            <RouterLink to="/funkochat" class="nav-link text-xl py-2 whitespace-nowrap flex items-center" @click="closeMobileNav" active-class="router-link-active">
+              <i class="pi pi-sparkles pr-3 w-3 nav-icon"></i>
+              <span class="ml-2 flex-1">Funko Chat</span>
+            </RouterLink>
             <RouterLink to="/friends" class="nav-link text-xl py-2 flex items-center gap-2" @click="closeMobileNav" active-class="router-link-active">
-              Friends
+              <i class="pi pi-users pr-3 w-3 nav-icon"></i>
+              <span class="ml-2 flex-1">Friends</span>
               <span v-if="friendRequestCount > 0" class="nav-badge">{{ friendRequestCount }}</span>
             </RouterLink>
             <RouterLink to="/badges" class="nav-link text-xl py-2 flex items-center gap-2" @click="closeMobileNav" active-class="router-link-active">
-              Badges
+              <i class="pi pi-star pr-3 w-3 nav-icon"></i>
+              <span class="ml-2 flex-1">Badges</span>
               <span v-if="newBadgesCount > 0" class="nav-badge">{{ newBadgesCount }}</span>
             </RouterLink>
             <div class="mobile-nav-divider"></div>
-            <RouterLink to="/collection" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Collection</RouterLink>
-            <RouterLink to="/favorites" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Favorites</RouterLink>
-            <RouterLink to="/account" class="nav-link text-xl py-2" @click="closeMobileNav" active-class="router-link-active">Account</RouterLink>
+            <RouterLink to="/collection" class="nav-link text-xl py-2 flex items-center" @click="closeMobileNav" active-class="router-link-active">
+              <i class="pi pi-box pr-3 w-3 nav-icon"></i>
+              <span class="ml-2 flex-1">Collection</span>
+            </RouterLink>
+            <RouterLink to="/favorites" class="nav-link text-xl py-2 flex items-center" @click="closeMobileNav" active-class="router-link-active">
+              <i class="pi pi-heart pr-3 w-3 nav-icon"></i>
+              <span class="ml-2 flex-1">Favorites</span>
+            </RouterLink>
+            <RouterLink to="/account" class="nav-link text-xl py-2 flex items-center" @click="closeMobileNav" active-class="router-link-active">
+              <i class="pi pi-user pr-3 w-3 nav-icon"></i>
+              <span class="ml-2 flex-1">Account</span>
+            </RouterLink>
           </div>
           <div class="flex-1"></div>
           <button @click="handleSignOut" class="nav-link text-xl mb-2 signout-btn mobile-signout">
@@ -279,9 +296,13 @@ const closeMobileNav = () => {
 }
 .mobile-nav {
   min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  overflow-y: auto; /* allow scrolling when content is taller than viewport */
+  box-sizing: border-box;
+  padding-bottom: env(safe-area-inset-bottom); /* respect mobile safe area */
 }
 .mobile-signout {
   margin-top: auto !important;
@@ -360,6 +381,11 @@ const closeMobileNav = () => {
 
 .mobile-nav .signout-btn {
   color: #e3342f !important;
+}
+
+/* Mobile-specific icon spacing so labels don't touch icons */
+.mobile-nav .nav-icon {
+  margin-right: 4.5rem;
 }
 
 @media (max-width: 768px) {

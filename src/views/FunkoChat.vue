@@ -1,7 +1,8 @@
 <script setup>
-import { ref, nextTick, onMounted } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { getAuth } from 'firebase/auth'
 import {getFunctions, httpsCallable} from 'firebase/functions'
+import { app } from '../firebase.js'
 import { marked } from 'marked'
 import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore'
 import { db, auth } from '../firebase.js'
@@ -10,6 +11,7 @@ import PaywallCard from '../components/PaywallCard.vue'
 const isPremium = ref(false)
 const isLoadingUserData = ref(true)
 const messagesRemaining = ref(20)
+const nextReset = ref('')
 
 const messages = ref([
   {
@@ -45,7 +47,7 @@ async function sendMessage(text) {
   scrollToBottom()
 
   try {
-    const functions = getFunctions()
+    const functions = getFunctions(app, 'us-central1')
     const funkoChat = httpsCallable(functions, 'funkoChat')
     const result = await funkoChat({ message })
     messages.value.push({ role: 'assistant', text: result.data.reply })
@@ -68,6 +70,25 @@ async function sendMessage(text) {
     nextTick(() => scrollToBottom())
   }
 }
+
+function computeNextReset() {
+  const now = new Date()
+  // Compute next UTC midnight
+  const nextUtcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
+  const diffMs = nextUtcMidnight.getTime() - now.getTime()
+  const hours = Math.floor(diffMs / (1000 * 60 * 60))
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+  nextReset.value = `Resets in ${hours}h ${minutes}m (00:00 UTC)`
+}
+
+let _resetTimer = null
+onMounted(() => {
+  computeNextReset()
+  _resetTimer = setInterval(computeNextReset, 60 * 1000)
+})
+onUnmounted(() => {
+  if (_resetTimer) clearInterval(_resetTimer)
+})
 
 function scrollToBottom() {
   if (messagesContainer.value) {
@@ -187,6 +208,9 @@ onMounted(() => {
         <div v-if="!isAdmin" class="messages-remaining" :class="{ 'messages-low': messagesRemaining <= 5 }">
           <i class="pi pi-comment"></i>
           {{ messagesRemaining }} messages remaining today
+        </div>
+        <div v-if="!isAdmin" class="reset-info">
+          {{ nextReset }}
         </div>
         <div class="chat-input-wrapper">
           <textarea
@@ -530,6 +554,14 @@ onMounted(() => {
 .messages-low {
   color: #ef4444;
   font-weight: 600;
+}
+
+.reset-info {
+  font-size: 0.72rem;
+  color: #bbb;
+  text-align: right;
+  padding-right: 0.5rem;
+  margin-top: -0.2rem;
 }
 
 </style>

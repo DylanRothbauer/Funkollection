@@ -19,9 +19,9 @@ import EditPopDialog from '@/components/EditPopDialog.vue'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import Dialog from 'primevue/dialog'
 import * as XLSX from 'xlsx'
 import { useUserFunkos } from '../composables/useUserFunkos'
+import PopDetailsDialog from '@/components/PopDetailsDialog.vue'
 
 // Use composable as single source of truth for funkos
 const { addFunkoPop, funkos, loading, refresh } = useUserFunkos()
@@ -212,65 +212,7 @@ const refreshCollection = async () => {
   <div>
     <ConfirmDialog />
     <AddPopDialog v-model:visible="showAddDialog" @pop-added="refreshCollection" />
-    <Dialog
-      v-model:visible="showViewDialog"
-      modal
-      header="Funko Pop Details"
-      :style="{ width: '700px', maxWidth: '98vw' }"
-    >
-      <div v-if="viewedFunko" class="flex flex-col items-center p-6 gap-4">
-        <!-- Image -->
-        <img
-          v-if="viewedFunko.image"
-          :src="viewedFunko.image"
-          alt="Funko Image"
-          class="w-64 h-64 object-cover rounded-xl border shadow-lg mb-2"
-        />
-
-        <!-- Name -->
-        <div class="text-2xl font-bold text-center" style="font-family: 'Playfair Display', serif; color: var(--funkollection-primary)">
-          {{ viewedFunko.name }}
-        </div>
-
-        <!-- Details Table -->
-        <div class="w-full max-w-sm flex flex-col gap-0 rounded-xl overflow-hidden border" style="border-color: rgba(44,74,46,0.15)">
-          <div class="detail-row">
-            <span class="detail-label">Title</span>
-            <span class="detail-value">{{ viewedFunko.title }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Series</span>
-            <span class="detail-value">{{ viewedFunko.series }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">ID</span>
-            <span class="detail-value">{{ viewedFunko.id || '—' }}</span>
-          </div>
-          <div class="detail-row" v-if="viewedFunko.quantity && viewedFunko.quantity > 1">
-            <span class="detail-label">Quantity</span>
-            <span class="detail-value">{{ viewedFunko.quantity }}</span>
-          </div>
-          <div class="detail-row" v-if="viewedFunko.purchasePrice !== undefined">
-            <span class="detail-label">Purchase Price</span>
-            <span class="detail-value">${{ Number(viewedFunko.purchasePrice).toFixed(2) }}</span>
-          </div>
-        </div>
-
-        <!-- Stickers -->
-        <div v-if="viewedFunko.stickers && viewedFunko.stickers.length > 0" class="w-full max-w-sm">
-          <div class="detail-label mb-2" style="font-size: 0.8rem;">Stickers / Exclusives</div>
-          <div class="flex flex-wrap gap-2">
-            <span
-              v-for="sticker in viewedFunko.stickers"
-              :key="sticker"
-              class="sticker-badge"
-            >
-              {{ sticker }}
-            </span>
-          </div>
-        </div>
-      </div>
-    </Dialog>
+    <PopDetailsDialog v-model:visible="showViewDialog" :funko="viewedFunko" />
     <EditPopDialog
       v-model:visible="showEditDialog"
       :funko="editingFunko"
@@ -488,47 +430,4 @@ const refreshCollection = async () => {
   gap: 0.5rem;
   justify-content: flex-end;
 }
-
-.sticker-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: var(--funkollection-secondary);
-  color: white;
-}
-
-.detail-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgba(44,74,46,0.08);
-  background: white;
-}
-
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-row:nth-child(even) {
-  background: var(--funkollection-background);
-}
-
-.detail-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--funkollection-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.detail-value {
-  font-size: 0.95rem;
-  color: var(--funkollection-text);
-  font-weight: 500;
-  text-align: right;
-}
-
 </style>
