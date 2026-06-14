@@ -220,6 +220,35 @@ th, td {
 /* Desktop table - hidden by default */
 .desktop-table {
   display: none;
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.06);
+}
+
+.desktop-table th,
+.desktop-table td {
+  padding: 1rem 1.25rem;
+  text-align: left;
+}
+
+.desktop-table th {
+  background: var(--funkollection-secondary);
+  color: white;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid rgba(255,255,255,0.16);
+}
+
+.desktop-table tbody tr:nth-child(even) {
+  background: #f4faf4;
+}
+
+.desktop-table tbody tr:hover {
+  background: #edf7eb;
 }
 
 /* Switch at md breakpoint */
