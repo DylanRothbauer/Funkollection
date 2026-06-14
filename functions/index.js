@@ -1,3 +1,4 @@
+const functions = require('firebase-functions')
 const { onCall, HttpsError } = require('firebase-functions/v2/https')
 const { setGlobalOptions } = require('firebase-functions/v2')
 const Anthropic = require('@anthropic-ai/sdk')
@@ -9,7 +10,7 @@ const db = getFirestore()
 
 setGlobalOptions({ maxInstances: 10 })
 
-exports.funkoChat = onCall({ cors: true }, async (request) => {
+exports.funkoChat = onCall({ cors: true, secrets: ['ANTHROPIC_KEY'] }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Must be logged in.')
   }
