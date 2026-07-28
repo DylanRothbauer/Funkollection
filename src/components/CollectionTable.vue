@@ -18,7 +18,7 @@ import { useUserFunkos } from '../composables/useUserFunkos'
 import PopDetailsDialog from '@/components/PopDetailsDialog.vue'
 
 // Use composable as single source of truth for funkos
-const { addFunkoPop, funkos, loading, refresh } = useUserFunkos()
+const { addFunkoPop, funkos, loading, error, refresh } = useUserFunkos()
 
 const user = ref(null)
 const selectedFunkos = ref([])
@@ -83,6 +83,12 @@ const hasSearch = computed(() => Boolean(filters.value.global.value?.trim()))
 function clearSearch() {
   filters.value.global.value = null
 }
+
+function openAddDialog() {
+  showAddDialog.value = true
+}
+
+defineExpose({ openAddDialog })
 
 function triggerImport() {
   importInput.value.click()
@@ -247,7 +253,6 @@ const refreshCollection = async () => {
         </button>
       </div>
       <div class="toolbar-actions">
-        <Button label="Add Funko" icon="pi pi-plus" @click="showAddDialog = true" />
         <Button label="Import" icon="pi pi-download" severity="secondary" @click="triggerImport" />
         <Button
           label="Export"
@@ -270,10 +275,24 @@ const refreshCollection = async () => {
       <span v-if="hasSearch">matching “{{ filters.global.value }}”</span>
       <span v-else>in your collection</span>
     </div>
-    <!-- Mobile Card View (visible on small screens only) -->
-    <div v-if="loading" class="collection-loading" aria-live="polite">
-      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-      <span>Loading your collection…</span>
+    <div v-if="error" class="collection-error" role="alert">
+      <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+      <div>
+        <h2>We couldn’t load your collection</h2>
+        <p>Please check your connection and try again.</p>
+      </div>
+      <Button label="Try again" icon="pi pi-refresh" outlined @click="refresh" />
+    </div>
+    <div v-else-if="loading" class="table-skeleton" aria-live="polite">
+      <p class="sr-only">Loading your collection</p>
+      <div class="skeleton-header"></div>
+      <div v-for="index in 6" :key="index" class="skeleton-row">
+        <span class="skeleton-image"></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span class="skeleton-actions"></span>
+      </div>
     </div>
     <div v-else-if="filteredFunkos.length === 0" class="collection-empty">
       <i :class="['pi', hasSearch ? 'pi-search' : 'pi-box']" aria-hidden="true"></i>
@@ -294,48 +313,51 @@ const refreshCollection = async () => {
       <button v-else type="button" class="clear-search" @click="clearSearch">Reset search</button>
     </div>
     <div v-else class="mobile-cards md:hidden">
-      <div v-for="funko in filteredFunkos" :key="funko.docId" class="mobile-card">
-        <div class="mobile-card-header">
-          <img v-if="funko.image" :src="funko.image" :alt="funko.name" class="mobile-card-img" />
-          <div>
-            <div class="mobile-card-name">{{ funko.name }}</div>
-            <div class="mobile-card-sub">{{ funko.title }}</div>
-            <div class="mobile-card-sub">{{ funko.series }}</div>
+      <article v-for="funko in filteredFunkos" :key="funko.docId" class="mobile-card">
+        <div class="mobile-card-content">
+          <div class="mobile-image-wrap">
+            <img
+              :src="funko.image || '/placeholder.svg'"
+              :alt="funko.name ? `${funko.name} collectible` : 'Funko Pop collectible'"
+              class="mobile-card-img"
+            />
+          </div>
+          <div class="mobile-card-copy">
+            <div class="mobile-card-topline">
+              <span class="mobile-card-id">#{{ funko.id || '—' }}</span>
+              <span v-if="isFavorite(funko)" class="favorite-status">
+                <i class="pi pi-heart-fill" aria-hidden="true"></i>
+                Favorite
+              </span>
+            </div>
+            <h2 class="mobile-card-name">{{ funko.name || 'Unnamed Pop' }}</h2>
+            <p class="mobile-card-sub">{{ funko.title || 'No title recorded' }}</p>
+            <p class="mobile-card-series">
+              <i class="pi pi-tag" aria-hidden="true"></i>
+              {{ funko.series || 'Series not recorded' }}
+            </p>
           </div>
         </div>
         <div class="mobile-card-actions">
+          <Button label="View details" icon="pi pi-eye" outlined @click="viewFunko(funko)" />
+          <Button icon="pi pi-pencil" text aria-label="Edit Pop" @click="editFunko(funko)" />
           <Button
-            icon="pi pi-eye"
-            outlined
-            rounded
-            aria-label="View Pop details"
-            @click="viewFunko(funko)"
-          />
-          <Button
-            icon="pi pi-pencil"
-            outlined
-            rounded
-            aria-label="Edit Pop"
-            @click="editFunko(funko)"
+            :icon="isFavorite(funko) ? 'pi pi-heart-fill' : 'pi pi-heart'"
+            text
+            severity="help"
+            :aria-pressed="isFavorite(funko)"
+            :aria-label="isFavorite(funko) ? 'Remove from favorites' : 'Add to favorites'"
+            @click="toggleFavorite(funko)"
           />
           <Button
             icon="pi pi-trash"
             text
-            rounded
             severity="danger"
             aria-label="Delete Pop"
             @click="confirmDeleteFunko(funko)"
           />
-          <Button
-            :icon="isFavorite(funko) ? 'pi pi-heart-fill' : 'pi pi-heart'"
-            outlined
-            rounded
-            severity="help"
-            :aria-label="isFavorite(funko) ? 'Remove from favorites' : 'Add to favorites'"
-            @click="toggleFavorite(funko)"
-          />
         </div>
-      </div>
+      </article>
     </div>
     <div v-if="!loading && filteredFunkos.length > 0" class="table-card hidden md:block">
       <DataTable
@@ -348,82 +370,71 @@ const refreshCollection = async () => {
         :rows="10"
         :filters="filters"
         :globalFilterFields="['id', 'name', 'title', 'series']"
-        tableStyle="min-width: 50rem"
+        tableStyle="min-width: 62rem"
         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
         :rowsPerPageOptions="[5, 10, 25, 50]"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} Pops"
       >
-        <!-- <template #header>
-          <div class="flex flex-wrap gap-2 items-center justify-between">
-            <div class="flex items-center gap-2">
-              <IconField>
-                <InputIcon>
-                  <i class="pi pi-search" />
-                </InputIcon>
-                <InputText v-model="filters['global'].value" placeholder="Search..." />
-              </IconField>
-            </div>
-            <div class="flex items-center gap-2">
-              <Button label="New" icon="pi pi-plus" class="mr-2" @click="showAddDialog = true" />
-              <Button
-                label="Export"
-                icon="pi pi-upload"
-                severity="secondary"
-                @click="exportCSV($event)"
-              />
-            </div>
-          </div>
-        </template> -->
         <template #empty> No Funko Pops found. </template>
         <template #loading> Loading Funko Pops data. Please wait. </template>
 
-        <Column field="id" header="ID" sortable style="min-width: 10rem"> </Column>
-        <Column field="name" header="Name" sortable style="min-width: 12rem"> </Column>
-        <Column field="title" header="Title" sortable style="min-width: 12rem"> </Column>
-        <Column field="series" header="Series" sortable style="min-width: 12rem"> </Column>
+        <Column field="name" header="Pop" sortable style="min-width: 17rem">
+          <template #body="slotProps">
+            <div class="pop-cell">
+              <img
+                :src="slotProps.data.image || '/placeholder.svg'"
+                :alt="slotProps.data.name ? `${slotProps.data.name} collectible` : ''"
+              />
+              <div>
+                <strong>{{ slotProps.data.name || 'Unnamed Pop' }}</strong>
+                <span>{{ slotProps.data.title || 'No title recorded' }}</span>
+              </div>
+            </div>
+          </template>
+        </Column>
+        <Column field="id" header="Number" sortable style="min-width: 8rem">
+          <template #body="slotProps">
+            <span class="pop-number">#{{ slotProps.data.id || '—' }}</span>
+          </template>
+        </Column>
+        <Column field="title" header="Title" sortable style="min-width: 12rem"></Column>
+        <Column field="series" header="Series" sortable style="min-width: 12rem"></Column>
         <Column
           header="Actions"
-          style="min-width: 16rem"
+          style="min-width: 13rem"
           :exportable="false"
           :showFilterMenu="false"
         >
           <template #body="slotProps">
-            <div class="flex gap-2">
+            <div class="row-actions">
+              <Button
+                :icon="isFavorite(slotProps.data) ? 'pi pi-heart-fill' : 'pi pi-heart'"
+                text
+                severity="help"
+                :aria-pressed="isFavorite(slotProps.data)"
+                @click="toggleFavorite(slotProps.data)"
+                :aria-label="
+                  isFavorite(slotProps.data) ? 'Remove from Favorites' : 'Add to Favorites'
+                "
+              />
               <Button
                 icon="pi pi-eye"
-                outlined
-                rounded
-                class="mr-1"
-                severity="info"
+                text
                 aria-label="View Pop details"
                 @click="viewFunko(slotProps.data)"
               />
               <Button
                 icon="pi pi-pencil"
-                outlined
-                rounded
-                class="mr-1"
+                text
                 aria-label="Edit Pop"
                 @click="editFunko(slotProps.data)"
               />
               <Button
                 icon="pi pi-trash"
                 text
-                rounded
                 severity="danger"
                 aria-label="Delete Pop"
                 @click="confirmDeleteFunko(slotProps.data)"
-              />
-              <Button
-                :icon="isFavorite(slotProps.data) ? 'pi pi-heart-fill' : 'pi pi-heart'"
-                rounded
-                outlined
-                severity="help"
-                class="mr-1"
-                @click="toggleFavorite(slotProps.data)"
-                :aria-label="
-                  isFavorite(slotProps.data) ? 'Remove from Favorites' : 'Add to Favorites'
-                "
               />
             </div>
           </template>
@@ -432,16 +443,21 @@ const refreshCollection = async () => {
       <Dialog
         v-model:visible="showImportResults"
         modal
-        header="Import Results"
-        :style="{ width: '400px' }"
+        header="Import results"
+        :style="{ width: 'min(25rem, calc(100vw - 2rem))' }"
       >
-        <div v-if="importResults" class="flex flex-col gap-3 p-4 text-center">
-          <div class="text-green-600 text-xl font-bold">
-            ✓ {{ importResults.imported }} Pops added
+        <div v-if="importResults" class="import-results">
+          <div class="import-result import-result--success">
+            <i class="pi pi-check-circle" aria-hidden="true"></i>
+            <span
+              ><strong>{{ importResults.imported }}</strong> Pops added</span
+            >
           </div>
-          <div class="text-blue-600 text-xl">↑ {{ importResults.updated }} quantities updated</div>
-          <div class="text-red-600 text-xl" v-if="importResults.errors > 0">
-            ✗ {{ importResults.errors }} errors
+          <div v-if="importResults.errors > 0" class="import-result import-result--error">
+            <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+            <span
+              ><strong>{{ importResults.errors }}</strong> rows could not be imported</span
+            >
           </div>
         </div>
       </Dialog>
@@ -449,23 +465,20 @@ const refreshCollection = async () => {
       <Dialog
         v-model:visible="isImporting"
         modal
-        header="Importing..."
+        header="Importing collection"
         :closable="false"
-        :style="{ width: '300px' }"
+        :style="{ width: 'min(20rem, calc(100vw - 2rem))' }"
       >
-        <div class="flex flex-col items-center gap-3 py-4">
-          <i
-            class="pi pi-spin pi-spinner"
-            style="font-size: 2rem; color: var(--funkollection-secondary)"
-          ></i>
-          <p class="text-center">Importing your collection, please wait...</p>
+        <div class="importing-state" aria-live="polite">
+          <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+          <p>Adding your Pops. Please keep this window open.</p>
         </div>
       </Dialog>
     </div>
   </section>
 </template>
 
-<style>
+<style scoped>
 .p-datatable-header-cell {
   background-color: var(--funkollection-secondary) !important;
   color: var(--funkollection-soft-white) !important;
@@ -529,6 +542,73 @@ const refreshCollection = async () => {
   display: flex;
   gap: 0.5rem;
   justify-content: flex-end;
+}
+
+.mobile-card-content {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.9rem;
+}
+
+.mobile-image-wrap {
+  display: grid;
+  width: 5rem;
+  height: 5rem;
+  place-items: center;
+  border-radius: 10px;
+  background: #f6f3e8;
+}
+
+.mobile-card-copy {
+  min-width: 0;
+}
+
+.mobile-card-topline {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.mobile-card-id {
+  color: var(--funkollection-secondary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.favorite-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #8b423e;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.mobile-card-name {
+  margin: 0;
+  color: var(--funkollection-primary);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.mobile-card-sub,
+.mobile-card-series {
+  overflow: hidden;
+  margin: 0.25rem 0 0;
+  color: #74786e;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-card-series {
+  color: #5f655c;
 }
 
 .collection-workspace {
@@ -601,6 +681,56 @@ const refreshCollection = async () => {
   overflow-x: auto;
 }
 
+.pop-cell {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pop-cell img {
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 1px solid rgba(47, 79, 79, 0.1);
+  border-radius: 8px;
+  background: #f6f3e8;
+  object-fit: contain;
+}
+
+.pop-cell > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.pop-cell strong,
+.pop-cell span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pop-cell strong {
+  color: var(--funkollection-primary);
+}
+
+.pop-cell span {
+  color: #74786e;
+  font-size: 0.78rem;
+}
+
+.pop-number {
+  color: var(--funkollection-primary);
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
 .collection-workspace :deep(.p-datatable-header-cell) {
   border-color: rgba(47, 79, 79, 0.12) !important;
   background: #f4f3eb !important;
@@ -623,7 +753,6 @@ const refreshCollection = async () => {
   background: white;
 }
 
-.collection-loading,
 .collection-empty {
   display: grid;
   min-height: 18rem;
@@ -634,12 +763,6 @@ const refreshCollection = async () => {
   text-align: center;
 }
 
-.collection-loading {
-  grid-auto-flow: column;
-  gap: 0.75rem;
-}
-
-.collection-loading .pi,
 .collection-empty > .pi {
   color: var(--funkollection-secondary);
   font-size: 1.6rem;
@@ -661,6 +784,108 @@ const refreshCollection = async () => {
   border: 1px solid rgba(47, 79, 79, 0.12);
   background: white;
   box-shadow: none;
+}
+
+.collection-error {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  min-height: 9rem;
+  padding: 1.5rem;
+  color: #73382d;
+}
+
+.collection-error > .pi {
+  font-size: 1.5rem;
+}
+
+.collection-error h2,
+.collection-error p {
+  margin: 0;
+}
+
+.collection-error h2 {
+  color: #73382d;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.3rem;
+}
+
+.collection-error p {
+  margin-top: 0.2rem;
+  color: #83594f;
+}
+
+.table-skeleton {
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+.skeleton-header,
+.skeleton-row span {
+  border-radius: 7px;
+  background: #eceee8;
+}
+
+.skeleton-header {
+  height: 2.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 3.5rem 1.5fr 0.7fr 1fr 8rem;
+  align-items: center;
+  gap: 1rem;
+  min-height: 4.5rem;
+  border-bottom: 1px solid rgba(47, 79, 79, 0.08);
+}
+
+.skeleton-row span {
+  height: 0.8rem;
+}
+
+.skeleton-row .skeleton-image {
+  height: 3rem;
+}
+
+.skeleton-row .skeleton-actions {
+  height: 2rem;
+}
+
+.import-results {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.import-result {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.8rem;
+  border-radius: 8px;
+}
+
+.import-result--success {
+  background: rgba(138, 154, 91, 0.12);
+  color: var(--funkollection-primary);
+}
+
+.import-result--error {
+  background: #fff2ef;
+  color: #7a3526;
+}
+
+.importing-state {
+  display: grid;
+  padding: 1rem;
+  place-items: center;
+  color: #656961;
+  text-align: center;
+}
+
+.importing-state .pi {
+  color: var(--funkollection-secondary);
+  font-size: 1.75rem;
 }
 
 .mobile-card-actions {
@@ -701,6 +926,23 @@ const refreshCollection = async () => {
 
   .mobile-cards {
     padding: 1rem;
+  }
+
+  .collection-error {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .table-skeleton {
+    padding: 1rem;
+  }
+
+  .skeleton-row {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+  }
+
+  .skeleton-row span:nth-child(n + 3) {
+    display: none;
   }
 }
 </style>
