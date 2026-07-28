@@ -1,10 +1,13 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { getAuth, onAuthStateChanged } from 'firebase/auth'
+import { collection, deleteDoc, doc, getDoc, getDocs, query, where } from 'firebase/firestore'
+import { RouterLink } from 'vue-router'
 import { db } from '@/firebase'
-import { collection, getDocs, getDoc, doc, query, where } from 'firebase/firestore'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
+import AppEmptyState from '@/components/AppEmptyState.vue'
+import AppPageHeader from '@/components/AppPageHeader.vue'
 import PopDetailsDialog from '@/components/PopDetailsDialog.vue'
 
 const user = ref(null)
@@ -12,6 +15,7 @@ const favorites = ref([])
 const loading = ref(true)
 const viewedFunko = ref(null)
 const showViewDialog = ref(false)
+const removingId = ref('')
 const toast = useToast()
 
 async function fetchFavorites() {
@@ -23,36 +27,40 @@ async function fetchFavorites() {
       const favoriteKey = favDoc.id
       const favoriteFunkoId = favoriteData?.funkoId || null
 
-      // Resolve favorites from the user's own collection entry if available.
       if (favoriteData?.funkoDocId) {
         const userFunkoRef = doc(db, 'users', user.value.uid, 'funkos', favoriteData.funkoDocId)
         const userFunkoSnap = await getDoc(userFunkoRef)
         if (userFunkoSnap.exists()) {
-          const ud = userFunkoSnap.data()
+          const userFunko = userFunkoSnap.data()
           let catalogImage = ''
-          if (ud.funkoId) {
-            const q = query(collection(db, 'FunkoPops'), where('funkoId', '==', ud.funkoId))
-            const snap = await getDocs(q)
-            if (!snap.empty) catalogImage = snap.docs[0].data().image || ''
+          if (userFunko.funkoId) {
+            const catalogQuery = query(
+              collection(db, 'FunkoPops'),
+              where('funkoId', '==', userFunko.funkoId),
+            )
+            const catalogSnapshot = await getDocs(catalogQuery)
+            if (!catalogSnapshot.empty) catalogImage = catalogSnapshot.docs[0].data().image || ''
           }
           return {
             docId: favoriteKey,
-            id: ud.funkoId || favoriteFunkoId || favoriteKey,
-            name: ud.name || '',
-            title: ud.title || '',
-            series: ud.series || '',
-            image: ud.image || catalogImage || '',
-            purchasePrice: ud.purchasePrice !== undefined ? ud.purchasePrice : '',
+            id: userFunko.funkoId || favoriteFunkoId || favoriteKey,
+            name: userFunko.name || '',
+            title: userFunko.title || '',
+            series: userFunko.series || '',
+            image: userFunko.image || catalogImage || '',
+            purchasePrice: userFunko.purchasePrice !== undefined ? userFunko.purchasePrice : '',
           }
         }
       }
 
-      // If the favorite record stores the actual Funko pop ID, use it.
       if (favoriteFunkoId) {
-        const q = query(collection(db, 'FunkoPops'), where('funkoId', '==', favoriteFunkoId))
-        const snap = await getDocs(q)
-        if (!snap.empty) {
-          const data = snap.docs[0].data()
+        const catalogQuery = query(
+          collection(db, 'FunkoPops'),
+          where('funkoId', '==', favoriteFunkoId),
+        )
+        const catalogSnapshot = await getDocs(catalogQuery)
+        if (!catalogSnapshot.empty) {
+          const data = catalogSnapshot.docs[0].data()
           return {
             docId: favoriteKey,
             id: favoriteFunkoId,
@@ -65,7 +73,6 @@ async function fetchFavorites() {
         }
       }
 
-      // Fallback: preserve the favorite doc ID internally, but do not show it as the pop ID unless no other data exists.
       return {
         docId: favoriteKey,
         id: favoriteFunkoId || favoriteKey,
@@ -85,180 +92,268 @@ function viewFunko(funko) {
   showViewDialog.value = true
 }
 
+async function removeFavorite(funko) {
+  if (!user.value || !funko.docId) return
+  removingId.value = funko.docId
+  try {
+    await deleteDoc(doc(db, 'users', user.value.uid, 'favorites', funko.docId))
+    favorites.value = favorites.value.filter((favorite) => favorite.docId !== funko.docId)
+    toast.add({
+      severity: 'info',
+      summary: 'Removed from favorites',
+      detail: funko.name || funko.title,
+      life: 2500,
+    })
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: 'Could not update favorites',
+      detail: 'Please try again.',
+      life: 3000,
+    })
+  } finally {
+    removingId.value = ''
+  }
+}
+
 onMounted(() => {
   const auth = getAuth()
   onAuthStateChanged(auth, async (firebaseUser) => {
     user.value = firebaseUser
-    if (user.value) {
-      await fetchFavorites()
-    }
+    if (user.value) await fetchFavorites()
     loading.value = false
   })
 })
 </script>
 
 <template>
-  <div class="card">
-    <h2 class="text-2xl font-bold mb-4" style="padding-bottom: 1rem;">My Favorites</h2>
+  <main class="feature-page">
+    <AppPageHeader
+      eyebrow="Curated collection"
+      title="Favorites"
+      description="Keep the Pops you care about most close at hand, with quick access to their collection details."
+      icon="pi-heart-fill"
+    />
 
-    <div v-if="loading" class="p-4">Loading favorites...</div>
-    <div v-else>
-      <div v-if="favorites.length === 0" class="p-4">No favorites yet.</div>
-      <div v-else>
-
-        <!-- Mobile Card View -->
-        <div class="mobile-cards">
-          <div v-for="funko in favorites" :key="funko.docId || funko.id" class="mobile-card">
-            <div class="mobile-card-header">
-              <img v-if="funko.image" :src="funko.image" :alt="funko.name" class="mobile-card-img" />
-              <div>
-                <div class="mobile-card-name">{{ funko.name }}</div>
-                <div class="mobile-card-sub">{{ funko.title }}</div>
-                <div class="mobile-card-sub">{{ funko.series }}</div>
-              </div>
-            </div>
-            <div class="mobile-card-actions">
-              <Button icon="pi pi-eye" outlined rounded severity="info" @click="viewFunko(funko)" />
-            </div>
-          </div>
+    <section class="favorites-panel" aria-labelledby="favorites-heading">
+      <header class="section-header">
+        <div>
+          <p class="section-kicker">Your shortlist</p>
+          <h2 id="favorites-heading">
+            {{ favorites.length }} favorite{{ favorites.length === 1 ? '' : 's' }}
+          </h2>
         </div>
+        <span class="pi pi-heart-fill favorite-mark" aria-hidden="true"></span>
+      </header>
 
-        <!-- Desktop Table View -->
-        <table class="desktop-table min-w-full table-auto border-collapse">
-          <thead>
-            <tr>
-              <th class="px-4 py-2">Image</th>
-              <th class="px-4 py-2">Name</th>
-              <th class="px-4 py-2">Title</th>
-              <th class="px-4 py-2">Series</th>
-              <th class="px-4 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="funko in favorites" :key="funko.docId || funko.id" class="hover:bg-gray-100">
-              <td class="px-4 py-2">
-                <img v-if="funko.image" :src="funko.image" alt="Funko Image" class="w-16 h-16 object-cover rounded" />
-              </td>
-              <td class="px-4 py-2">{{ funko.name }}</td>
-              <td class="px-4 py-2">{{ funko.title }}</td>
-              <td class="px-4 py-2">{{ funko.series }}</td>
-              <td class="px-4 py-2">
-                <Button icon="pi pi-eye" outlined rounded severity="info" @click="viewFunko(funko)" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
+      <div v-if="loading" class="favorites-skeleton" aria-live="polite">
+        <span v-for="index in 4" :key="index"></span>
       </div>
-    </div>
 
-    <!-- View Dialog -->
+      <AppEmptyState
+        v-else-if="favorites.length === 0"
+        icon="pi-heart"
+        title="No favorites yet"
+        description="Use the heart action in your collection to build a personal shortlist of standout Pops."
+      >
+        <RouterLink class="collection-link" to="/collection">Browse your collection</RouterLink>
+      </AppEmptyState>
+
+      <div v-else class="favorites-grid">
+        <article v-for="funko in favorites" :key="funko.docId || funko.id" class="favorite-card">
+          <div class="image-wrap">
+            <img
+              :src="funko.image || '/placeholder.svg'"
+              :alt="funko.name ? `${funko.name} collectible` : 'Funko Pop collectible'"
+            />
+            <span class="favorite-badge"
+              ><i class="pi pi-heart-fill" aria-hidden="true"></i> Favorite</span
+            >
+          </div>
+          <div class="favorite-copy">
+            <p class="series">{{ funko.series || 'Series not recorded' }}</p>
+            <h3>{{ funko.name || 'Unnamed Pop' }}</h3>
+            <p class="title">{{ funko.title || 'No title recorded' }}</p>
+          </div>
+          <div class="favorite-actions">
+            <Button label="View details" icon="pi pi-eye" outlined @click="viewFunko(funko)" />
+            <Button
+              icon="pi pi-heart-fill"
+              text
+              severity="danger"
+              :loading="removingId === funko.docId"
+              aria-label="Remove from favorites"
+              @click="removeFavorite(funko)"
+            />
+          </div>
+        </article>
+      </div>
+    </section>
+
     <PopDetailsDialog v-model:visible="showViewDialog" :funko="viewedFunko" />
-  </div>
+  </main>
 </template>
 
 <style scoped>
-.card {
-  background: white;
-  border-radius: 1rem;
-  padding: 2rem;
-  margin: 2rem auto;
-  max-width: 900px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-th, td {
-  border-bottom: 1px solid #e5e7eb;
-}
-
-/* Mobile cards - visible by default */
-.mobile-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.mobile-card {
-  background: var(--funkollection-background, #f9f9f9);
-  border-radius: 12px;
-  padding: 1rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.mobile-card-header {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.mobile-card-img {
-  width: 4rem;
-  height: 4rem;
-  object-fit: contain;
-  border-radius: 8px;
-}
-
-.mobile-card-name {
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.mobile-card-sub {
-  font-size: 0.85rem;
-  color: #888;
-}
-
-.mobile-card-actions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-
-/* Desktop table - hidden by default */
-.desktop-table {
-  display: none;
+.feature-page {
   width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 1rem;
+  min-width: 0;
+  min-height: 100%;
+  padding: clamp(1.25rem, 3vw, 3rem);
+  background:
+    radial-gradient(circle at top right, rgba(138, 154, 91, 0.1), transparent 30rem),
+    var(--funkollection-background);
+  color: var(--funkollection-text);
+}
+
+.feature-page > * {
+  width: min(100%, 1280px);
+  margin-inline: auto;
+}
+
+.favorites-panel {
+  margin-top: 1rem;
+  padding: clamp(1.15rem, 2vw, 1.5rem);
+  border: 1px solid rgba(47, 79, 79, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(47, 79, 79, 0.06);
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.section-kicker,
+.series {
+  margin: 0 0 0.15rem;
+  color: var(--funkollection-secondary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+h2,
+h3 {
+  margin: 0;
+  color: var(--funkollection-primary);
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+h2 {
+  font-size: 1.45rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+.favorite-mark {
+  color: #9b4b46;
+  font-size: 1.3rem;
+}
+
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.favorite-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(47, 79, 79, 0.12);
+  border-radius: 12px;
+  background: white;
 }
 
-.desktop-table th,
-.desktop-table td {
-  padding: 1rem 1.25rem;
-  text-align: left;
+.image-wrap {
+  position: relative;
+  display: grid;
+  min-height: 12rem;
+  padding: 1rem;
+  place-items: center;
+  background: #f6f3e8;
 }
 
-.desktop-table th {
+.image-wrap img {
+  width: 100%;
+  height: 11rem;
+  object-fit: contain;
+}
+
+.favorite-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  background: white;
+  color: #8b423e;
+  font-size: 0.72rem;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(47, 79, 79, 0.1);
+}
+
+.favorite-copy {
+  flex: 1;
+  padding: 1rem;
+}
+
+.title {
+  margin: 0.25rem 0 0;
+  color: #73776e;
+  font-size: 0.88rem;
+}
+
+.favorite-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(47, 79, 79, 0.1);
+}
+
+.collection-link {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
   background: var(--funkollection-secondary);
   color: white;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  border-bottom: 2px solid rgba(255,255,255,0.16);
+  text-decoration: none;
 }
 
-.desktop-table tbody tr:nth-child(even) {
-  background: #f4faf4;
+.favorites-skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
 }
 
-.desktop-table tbody tr:hover {
-  background: #edf7eb;
+.favorites-skeleton span {
+  height: 20rem;
+  border-radius: 12px;
+  background: #eceee8;
 }
 
-/* Switch at md breakpoint */
-@media (min-width: 768px) {
-  .mobile-cards {
-    display: none !important;
+@media (max-width: 768px) {
+  .feature-page {
+    padding: 1rem;
   }
 
-  .desktop-table {
-    display: table;
+  .favorites-grid,
+  .favorites-skeleton {
+    grid-template-columns: 1fr;
   }
 }
 </style>

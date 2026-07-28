@@ -1,155 +1,263 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { db } from '../firebase.js'
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteField } from 'firebase/firestore'
+import { computed, onMounted, ref } from 'vue'
 import { getAuth } from 'firebase/auth'
-import PaywallCard from '@/components/PaywallCard.vue'
+import {
+  collection,
+  deleteField,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+} from 'firebase/firestore'
 import { useToast } from 'primevue/usetoast'
+import { db } from '../firebase.js'
+import AppPageHeader from '@/components/AppPageHeader.vue'
+import PaywallCard from '@/components/PaywallCard.vue'
 
 const auth = getAuth()
 const toast = useToast()
-
 const isPremium = ref(false)
 const isLoadingUserData = ref(true)
 const isLoadingBadges = ref(true)
+const loadError = ref('')
 const unlockedBadgeIds = ref(new Set())
+const badgeProgress = ref({})
 
-/*
-Structure:
-{
-  id: 'unique_id',      // unique snake_case identifier, never change this once set
-  label: 'Badge Name',  // displayed on the card
-  icon: 'pi-icon-name', // any PrimeIcon name
-  desc: 'Description',  // shown under the label
-  req: { type: 'count', value: 25 } // the unlock condition
-}
-
-Notes:
-Don't change id, since its stored in firestore under here -> users/{uid}/badges/{id}
-Don't change req.type & req.value - for users who already unlocked
-
-*/
 const BADGES = [
-  // Collection Size
-  { id: 'first_pop',         label: 'First Pop',         icon: 'pi-star',      desc: 'Add your first Funko Pop',            req: { type: 'count',  value: 1 } },
-  { id: 'getting_started',   label: 'Getting Started',   icon: 'pi-thumbs-up', desc: 'Own 5 Funko Pops',                    req: { type: 'count',  value: 5 } },
-  { id: 'collector',         label: 'Collector',         icon: 'pi-box',       desc: 'Own 25 Funko Pops',                   req: { type: 'count',  value: 25 } },
-  { id: 'serious_collector', label: 'Serious Collector', icon: 'pi-crown',     desc: 'Own 50 Funko Pops',                   req: { type: 'count',  value: 50 } },
-  { id: 'century_club',      label: 'Century Club',      icon: 'pi-trophy',    desc: 'Own 100 Funko Pops',                  req: { type: 'count',  value: 100 } },
-  { id: 'pop_hoarder',       label: 'Pop Hoarder',       icon: 'pi-inbox',     desc: 'Own 200 Funko Pops',                  req: { type: 'count',  value: 200 } },
-  { id: 'legend',            label: 'Legend',            icon: 'pi-verified',  desc: 'Own 500 Funko Pops',                  req: { type: 'count',  value: 500 } },
-  // Series/Variety
-  { id: 'variety_pack',      label: 'Variety Pack',      icon: 'pi-th-large',  desc: 'Own Pops from 5 different series',    req: { type: 'series', value: 5 } },
-  { id: 'genre_master',      label: 'Genre Master',      icon: 'pi-globe',     desc: 'Own Pops from 10 different series',   req: { type: 'series', value: 10 } },
-  { id: 'world_collector',   label: 'World Collector',   icon: 'pi-map',       desc: 'Own Pops from 25 different series',   req: { type: 'series', value: 25 } },
-  // Value
-  { id: 'invested',          label: 'Invested',          icon: 'pi-chart-line',desc: 'Spend over $250 on your collection',  req: { type: 'value',  value: 250 } },
-  { id: 'big_spender',       label: 'Big Spender',       icon: 'pi-dollar',    desc: 'Spend over $500 on your collection',  req: { type: 'value',  value: 500 } },
-  { id: 'high_roller',       label: 'High Roller',       icon: 'pi-wallet',    desc: 'Spend over $1000 on your collection', req: { type: 'value',  value: 1000 } },
-  { id: 'whale',             label: 'Whale',             icon: 'pi-arrow-up',  desc: 'Spend over $2500 on your collection', req: { type: 'value',  value: 2500 } },
-  // Favorites
-  { id: 'first_favorite',    label: 'First Favorite',    icon: 'pi-heart',     desc: 'Add your first favorite Pop',         req: { type: 'favorites',value: 1 } },
-  { id: 'favorite_five',     label: 'Favorite Five',     icon: 'pi-heart-fill',desc: 'Have 5 favorite Pops',                req: { type: 'favorites',value: 5 } },
+  {
+    id: 'first_pop',
+    label: 'First Pop',
+    icon: 'pi-star',
+    desc: 'Add your first Funko Pop',
+    req: { type: 'count', value: 1 },
+  },
+  {
+    id: 'getting_started',
+    label: 'Getting Started',
+    icon: 'pi-thumbs-up',
+    desc: 'Own 5 Funko Pops',
+    req: { type: 'count', value: 5 },
+  },
+  {
+    id: 'collector',
+    label: 'Collector',
+    icon: 'pi-box',
+    desc: 'Own 25 Funko Pops',
+    req: { type: 'count', value: 25 },
+  },
+  {
+    id: 'serious_collector',
+    label: 'Serious Collector',
+    icon: 'pi-crown',
+    desc: 'Own 50 Funko Pops',
+    req: { type: 'count', value: 50 },
+  },
+  {
+    id: 'century_club',
+    label: 'Century Club',
+    icon: 'pi-trophy',
+    desc: 'Own 100 Funko Pops',
+    req: { type: 'count', value: 100 },
+  },
+  {
+    id: 'pop_hoarder',
+    label: 'Pop Hoarder',
+    icon: 'pi-inbox',
+    desc: 'Own 200 Funko Pops',
+    req: { type: 'count', value: 200 },
+  },
+  {
+    id: 'legend',
+    label: 'Legend',
+    icon: 'pi-verified',
+    desc: 'Own 500 Funko Pops',
+    req: { type: 'count', value: 500 },
+  },
+  {
+    id: 'variety_pack',
+    label: 'Variety Pack',
+    icon: 'pi-th-large',
+    desc: 'Own Pops from 5 different series',
+    req: { type: 'series', value: 5 },
+  },
+  {
+    id: 'genre_master',
+    label: 'Genre Master',
+    icon: 'pi-globe',
+    desc: 'Own Pops from 10 different series',
+    req: { type: 'series', value: 10 },
+  },
+  {
+    id: 'world_collector',
+    label: 'World Collector',
+    icon: 'pi-map',
+    desc: 'Own Pops from 25 different series',
+    req: { type: 'series', value: 25 },
+  },
+  {
+    id: 'invested',
+    label: 'Invested',
+    icon: 'pi-chart-line',
+    desc: 'Spend over $250 on your collection',
+    req: { type: 'value', value: 250 },
+  },
+  {
+    id: 'big_spender',
+    label: 'Big Spender',
+    icon: 'pi-dollar',
+    desc: 'Spend over $500 on your collection',
+    req: { type: 'value', value: 500 },
+  },
+  {
+    id: 'high_roller',
+    label: 'High Roller',
+    icon: 'pi-wallet',
+    desc: 'Spend over $1000 on your collection',
+    req: { type: 'value', value: 1000 },
+  },
+  {
+    id: 'whale',
+    label: 'Whale',
+    icon: 'pi-arrow-up',
+    desc: 'Spend over $2500 on your collection',
+    req: { type: 'value', value: 2500 },
+  },
+  {
+    id: 'first_favorite',
+    label: 'First Favorite',
+    icon: 'pi-heart',
+    desc: 'Add your first favorite Pop',
+    req: { type: 'favorites', value: 1 },
+  },
+  {
+    id: 'favorite_five',
+    label: 'Favorite Five',
+    icon: 'pi-heart-fill',
+    desc: 'Have 5 favorite Pops',
+    req: { type: 'favorites', value: 5 },
+  },
 ]
 
-// Progress tracking for partially completed badges
-const badgeProgress = ref({})
+const GROUPS = [
+  {
+    type: 'count',
+    label: 'Collection milestones',
+    description: 'Grow the number of Pops in your collection.',
+  },
+  {
+    type: 'series',
+    label: 'Collection variety',
+    description: 'Explore and collect across more series.',
+  },
+  {
+    type: 'value',
+    label: 'Recorded investment',
+    description: 'Track the purchase value of your collection.',
+  },
+  {
+    type: 'favorites',
+    label: 'Personal favorites',
+    description: 'Curate the Pops that matter most to you.',
+  },
+]
 
 onMounted(async () => {
   const currentUser = auth.currentUser
-  if (!currentUser) return
-
-  // Check admin/premium
-  const userDocRef = doc(db, 'users', currentUser.uid)
-  const userDocSnap = await getDoc(userDocRef)
-  const userData = userDocSnap.data()
-
-  if (userData?.isAdmin) {
-    isPremium.value = true
-  } else {
-    const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
-    const subSnap = await getDocs(subscriptionsRef)
-    isPremium.value = subSnap.docs.some(d => {
-      const data = d.data()
-      return data.status === 'active' || data.status === 'trialing'
-    })
+  if (!currentUser) {
+    isLoadingUserData.value = false
+    isLoadingBadges.value = false
+    return
   }
 
-  isLoadingUserData.value = false
-  if (!isPremium.value) return
+  try {
+    const userDocRef = doc(db, 'users', currentUser.uid)
+    const userDocSnap = await getDoc(userDocRef)
+    const userData = userDocSnap.data()
 
-  // Fetch user's funkos and favorites in parallel for efficiency
-  const [funkosSnap, favoritesSnap] = await Promise.all([
-    getDocs(collection(db, 'users', currentUser.uid, 'funkos')),
-    getDocs(collection(db, 'users', currentUser.uid, 'favorites')),
-  ])
-
-  const funkos = funkosSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-  const favoritesCount = favoritesSnap.docs.length
-
-  // Fetch global FunkoPops for series data
-  const funkoDetails = await Promise.all(funkos.map(async (userFunko) => {
-    const globalDoc = await getDoc(doc(db, 'FunkoPops', userFunko.id))
-    const globalData = globalDoc.exists() ? globalDoc.data() : {}
-    return {
-      ...userFunko,
-      series: globalData.series || userFunko.series || '',
+    if (userData?.isAdmin) {
+      isPremium.value = true
+    } else {
+      const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
+      const subSnap = await getDocs(subscriptionsRef)
+      isPremium.value = subSnap.docs.some((subscriptionDoc) => {
+        const data = subscriptionDoc.data()
+        return data.status === 'active' || data.status === 'trialing'
+      })
     }
-  }))
 
-  // Compute stats
-  const totalCount = funkoDetails.length
-  const uniqueSeries = new Set(funkoDetails.map(f => f.series).filter(Boolean)).size
-  const totalValue = funkoDetails.reduce((sum, f) => sum + (parseFloat(f.purchasePrice) || 0), 0)
+    isLoadingUserData.value = false
+    if (!isPremium.value) return
 
-  // Store progress for display (keys must match req.type in BADGES array)
-  badgeProgress.value = {
-    count: totalCount,
-    series: uniqueSeries,
-    value: totalValue,
-    favorites: favoritesCount,
-  }
+    const [funkosSnap, favoritesSnap] = await Promise.all([
+      getDocs(collection(db, 'users', currentUser.uid, 'funkos')),
+      getDocs(collection(db, 'users', currentUser.uid, 'favorites')),
+    ])
 
-  // Fetch already unlocked badges
-  const badgesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'badges'))
-  const alreadyUnlocked = new Set(badgesSnap.docs.map(d => d.id))
+    const funkos = funkosSnap.docs.map((funkoDoc) => ({ id: funkoDoc.id, ...funkoDoc.data() }))
+    const favoritesCount = favoritesSnap.docs.length
+    const funkoDetails = await Promise.all(
+      funkos.map(async (userFunko) => {
+        const globalDoc = await getDoc(doc(db, 'FunkoPops', userFunko.id))
+        const globalData = globalDoc.exists() ? globalDoc.data() : {}
+        return { ...userFunko, series: globalData.series || userFunko.series || '' }
+      }),
+    )
 
-  // Check each badge and unlock if newly earned
-  const newlyUnlocked = []
-  for (const badge of BADGES) {
-    const { type, value } = badge.req
-    let earned = false
+    const totalCount = funkoDetails.length
+    const uniqueSeries = new Set(funkoDetails.map((funko) => funko.series).filter(Boolean)).size
+    const totalValue = funkoDetails.reduce(
+      (sum, funko) => sum + (Number.parseFloat(funko.purchasePrice) || 0),
+      0,
+    )
 
-    if (type === 'count')     earned = totalCount >= value
-    if (type === 'series')    earned = uniqueSeries >= value
-    if (type === 'value')     earned = totalValue >= value
-    if (type === 'favorites') earned = favoritesCount >= value
+    badgeProgress.value = {
+      count: totalCount,
+      series: uniqueSeries,
+      value: totalValue,
+      favorites: favoritesCount,
+    }
 
-    if (earned) {
-      unlockedBadgeIds.value.add(badge.id)
-      if (!alreadyUnlocked.has(badge.id)) {
-        await setDoc(doc(db, 'users', currentUser.uid, 'badges', badge.id), {
-          unlockedAt: new Date().toISOString()
-        })
-        newlyUnlocked.push(badge.label)
+    const badgesSnap = await getDocs(collection(db, 'users', currentUser.uid, 'badges'))
+    const alreadyUnlocked = new Set(badgesSnap.docs.map((badgeDoc) => badgeDoc.id))
+    const newlyUnlocked = []
+
+    for (const badge of BADGES) {
+      const { type, value } = badge.req
+      let earned = false
+      if (type === 'count') earned = totalCount >= value
+      if (type === 'series') earned = uniqueSeries >= value
+      if (type === 'value') earned = totalValue >= value
+      if (type === 'favorites') earned = favoritesCount >= value
+
+      if (earned) {
+        unlockedBadgeIds.value.add(badge.id)
+        if (!alreadyUnlocked.has(badge.id)) {
+          await setDoc(doc(db, 'users', currentUser.uid, 'badges', badge.id), {
+            unlockedAt: new Date().toISOString(),
+          })
+          newlyUnlocked.push(badge.label)
+        }
       }
     }
-  }
 
-  // Show toast for newly unlocked badges
-  if (newlyUnlocked.length > 0) {
-    newlyUnlocked.forEach(label => {
-      toast.add({
-        severity: 'success',
-        summary: '🏆 Badge Unlocked!',
-        detail: label,
-        life: 4000
+    if (newlyUnlocked.length > 0) {
+      newlyUnlocked.forEach((label) => {
+        toast.add({
+          severity: 'success',
+          summary: 'Badge unlocked',
+          detail: label,
+          life: 4000,
+        })
       })
-    })
-    await updateDoc(userDocRef, { newBadges: deleteField() })
+      await updateDoc(userDocRef, { newBadges: deleteField() })
+    }
+  } catch {
+    loadError.value = 'We could not load your badge progress. Please refresh and try again.'
+  } finally {
+    isLoadingUserData.value = false
+    isLoadingBadges.value = false
   }
-
-  isLoadingBadges.value = false
 })
 
 function isUnlocked(badge) {
@@ -157,233 +265,453 @@ function isUnlocked(badge) {
 }
 
 function getProgress(badge) {
-  const current = badgeProgress.value[badge.req.type] || 0
+  const current = Number(badgeProgress.value[badge.req.type]) || 0
   const target = badge.req.value
-  return { current: Math.min(current, target), target, percent: Math.min(100, Math.round((current / target) * 100)) }
+  return {
+    current: Math.min(current, target),
+    target,
+    percent: target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0,
+  }
+}
+
+function formatProgressValue(badge, value) {
+  if (badge.req.type === 'value') {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    }).format(value)
+  }
+  return value.toLocaleString()
 }
 
 const unlockedCount = computed(() => unlockedBadgeIds.value.size)
+const completionPercent = computed(() => Math.round((unlockedCount.value / BADGES.length) * 100))
+const badgeGroups = computed(() =>
+  GROUPS.map((group) => ({
+    ...group,
+    badges: BADGES.filter((badge) => badge.req.type === group.type),
+  })),
+)
 </script>
 
 <template>
-  <div v-if="isLoadingUserData" class="loading-state">
-    <p>Loading...</p>
-  </div>
-
-  <div v-else-if="!isPremium" class="paywall-container">
-    <PaywallCard feature-name="Badges" />
-  </div>
-
-  <div v-else class="badges-container">
-    <header class="flex items-center justify-between p-4 bg-white shadow-sm rounded-b-lg mb-8">
+  <main class="feature-page">
+    <section v-if="isLoadingUserData" class="page-status" aria-live="polite">
+      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
       <div>
-        <h1 class="text-3xl font-bold text-gray-800">Badges</h1>
-        <p class="text-sm text-gray-400 mt-1">{{ unlockedCount }} / {{ BADGES.length }} unlocked</p>
+        <h1>Preparing your achievements</h1>
+        <p>Checking your collection progress.</p>
       </div>
-    </header>
+    </section>
 
-    <div v-if="isLoadingBadges" class="flex items-center justify-center py-16">
-      <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: var(--funkollection-secondary)"></i>
-    </div>
+    <section v-else-if="!isPremium" class="paywall-container">
+      <PaywallCard feature-name="Badges" />
+    </section>
 
-    <div v-else class="badges-grid">
-      <div
-        v-for="badge in BADGES"
-        :key="badge.id"
-        class="badge-card"
-        :class="{ 'badge-card--unlocked': isUnlocked(badge), 'badge-card--locked': !isUnlocked(badge) }"
-      >
-        <!-- Icon -->
-        <div class="badge-icon-wrapper">
-          <i :class="['pi', badge.icon, 'badge-icon']"></i>
-          <i v-if="!isUnlocked(badge)" class="pi pi-lock lock-overlay"></i>
+    <template v-else>
+      <AppPageHeader
+        eyebrow="Collection milestones"
+        title="Badges"
+        description="Celebrate meaningful steps in your collection and see exactly what to work toward next."
+        icon="pi-verified"
+      />
+
+      <section v-if="loadError" class="error-state" role="alert">
+        <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+        <div>
+          <h2>Badge progress unavailable</h2>
+          <p>{{ loadError }}</p>
         </div>
+      </section>
 
-        <!-- Label -->
-        <div class="badge-label">{{ badge.label }}</div>
-
-        <!-- Description -->
-        <div class="badge-desc">{{ badge.desc }}</div>
-
-        <!-- Progress bar -->
-        <div class="badge-progress">
-          <div class="progress-bar-track">
-            <div
-              class="progress-bar-fill"
-              :style="{ width: getProgress(badge).percent + '%' }"
-            ></div>
+      <template v-else>
+        <section class="progress-overview" aria-labelledby="progress-title">
+          <div class="progress-copy">
+            <p class="section-kicker">Overall progress</p>
+            <h2 id="progress-title">{{ unlockedCount }} of {{ BADGES.length }} badges earned</h2>
+            <p>Every addition, series, recorded purchase, and favorite can move you forward.</p>
           </div>
-          <div class="progress-text">
-            <template v-if="badge.req.type === 'value'">
-              ${{ Math.min(badgeProgress.value || 0, badge.req.value).toFixed(0) }} / ${{ badge.req.value }}
-            </template>
-            <template v-else>
-              {{ getProgress(badge).current }} / {{ getProgress(badge).target }}
-            </template>
+          <div class="progress-score">
+            <strong>{{ completionPercent }}%</strong>
+            <span>complete</span>
           </div>
+          <div
+            class="overview-track"
+            role="progressbar"
+            aria-label="Overall badge completion"
+            :aria-valuenow="completionPercent"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <span :style="{ width: `${completionPercent}%` }"></span>
+          </div>
+        </section>
+
+        <div v-if="isLoadingBadges" class="badge-skeleton" aria-live="polite">
+          <span v-for="index in 8" :key="index"></span>
         </div>
 
-        <!-- Unlock date -->
-        <div v-if="isUnlocked(badge)" class="badge-unlocked-date">
-          <i class="pi pi-check-circle"></i> Unlocked!
-        </div>
-      </div>
-    </div>
-  </div>
+        <template v-else>
+          <section
+            v-for="group in badgeGroups"
+            :key="group.type"
+            class="badge-section"
+            :aria-labelledby="`${group.type}-title`"
+          >
+            <header class="section-header">
+              <div>
+                <p class="section-kicker">Achievement track</p>
+                <h2 :id="`${group.type}-title`">{{ group.label }}</h2>
+                <p>{{ group.description }}</p>
+              </div>
+              <span>
+                {{ group.badges.filter((badge) => isUnlocked(badge)).length }} /
+                {{ group.badges.length }} earned
+              </span>
+            </header>
+
+            <div class="badges-grid">
+              <article
+                v-for="badge in group.badges"
+                :key="badge.id"
+                class="badge-card"
+                :class="{ 'badge-card--unlocked': isUnlocked(badge) }"
+              >
+                <div class="badge-topline">
+                  <span class="badge-icon">
+                    <i :class="['pi', badge.icon]" aria-hidden="true"></i>
+                  </span>
+                  <span class="status-pill">
+                    <i
+                      :class="['pi', isUnlocked(badge) ? 'pi-check-circle' : 'pi-lock']"
+                      aria-hidden="true"
+                    ></i>
+                    {{ isUnlocked(badge) ? 'Earned' : 'In progress' }}
+                  </span>
+                </div>
+
+                <div class="badge-copy">
+                  <h3>{{ badge.label }}</h3>
+                  <p>{{ badge.desc }}</p>
+                </div>
+
+                <div class="badge-progress">
+                  <div class="progress-label">
+                    <span>Progress</span>
+                    <strong>{{ getProgress(badge).percent }}%</strong>
+                  </div>
+                  <div
+                    class="progress-track"
+                    role="progressbar"
+                    :aria-label="`${badge.label} progress`"
+                    :aria-valuenow="getProgress(badge).percent"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  >
+                    <span :style="{ width: `${getProgress(badge).percent}%` }"></span>
+                  </div>
+                  <p class="progress-values">
+                    {{ formatProgressValue(badge, getProgress(badge).current) }} of
+                    {{ formatProgressValue(badge, getProgress(badge).target) }}
+                  </p>
+                </div>
+              </article>
+            </div>
+          </section>
+        </template>
+      </template>
+    </template>
+  </main>
 </template>
 
 <style scoped>
-.badges-container {
-  background: var(--funkollection-background);
-  min-height: 100vh;
-  padding-bottom: 2rem;
+.feature-page {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  padding: clamp(1.25rem, 3vw, 3rem);
+  background:
+    radial-gradient(circle at top right, rgba(138, 154, 91, 0.1), transparent 30rem),
+    var(--funkollection-background);
+  color: var(--funkollection-text);
 }
 
-.paywall-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 2rem;
-  background: var(--funkollection-background);
+.feature-page > * {
+  width: min(100%, 1280px);
+  margin-inline: auto;
 }
 
-.loading-state {
-  display: flex;
+.progress-overview,
+.badge-section,
+.error-state {
+  margin-top: 1rem;
+  border: 1px solid rgba(47, 79, 79, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(47, 79, 79, 0.06);
+}
+
+.progress-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  color: #666;
+  gap: 1rem 2rem;
+  padding: clamp(1.15rem, 2vw, 1.5rem);
+}
+
+.section-kicker {
+  margin: 0 0 0.15rem;
+  color: var(--funkollection-secondary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--funkollection-primary);
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+h2 {
+  font-size: 1.45rem;
+}
+
+h3 {
+  font-size: 1.18rem;
+}
+
+.progress-copy > p:last-child,
+.section-header p,
+.badge-copy p {
+  margin: 0.3rem 0 0;
+  color: #70746b;
+}
+
+.progress-score {
+  display: flex;
+  flex-direction: column;
+  color: var(--funkollection-primary);
+  text-align: right;
+}
+
+.progress-score strong {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.progress-score span {
+  color: #74786e;
+  font-size: 0.8rem;
+}
+
+.overview-track,
+.progress-track {
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eae4;
+}
+
+.overview-track {
+  grid-column: 1 / -1;
+  height: 0.65rem;
+}
+
+.overview-track span,
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--funkollection-secondary);
+}
+
+.badge-section {
+  padding: clamp(1.15rem, 2vw, 1.5rem);
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.section-header > span {
+  flex: 0 0 auto;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(138, 154, 91, 0.12);
+  color: var(--funkollection-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .badges-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.5rem;
-  padding: 0 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1rem;
 }
 
 .badge-card {
-  background: white;
-  border-radius: 1rem;
-  padding: 1.5rem 1rem;
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  transition: transform 0.2s, box-shadow 0.2s;
-  text-align: center;
-}
-
-.badge-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  gap: 1.1rem;
+  padding: 1.15rem;
+  border: 1px solid rgba(47, 79, 79, 0.13);
+  border-radius: 12px;
+  background: #fafaf7;
 }
 
 .badge-card--unlocked {
-  border: 2px solid var(--funkollection-secondary);
+  border-color: rgba(138, 154, 91, 0.55);
+  background: rgba(138, 154, 91, 0.06);
 }
 
-.badge-card--locked {
-  opacity: 0.6;
-  filter: grayscale(0.4);
-}
-
-.badge-icon-wrapper {
-  position: relative;
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 50%;
-  background: var(--funkollection-background);
+.badge-topline {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 0.25rem;
-}
-
-.badge-card--unlocked .badge-icon-wrapper {
-  background: var(--funkollection-secondary);
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .badge-icon {
-  font-size: 1.5rem;
-  color: #999;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: 10px;
+  background: #e7e8e2;
+  color: #6d7169;
+  font-size: 1.15rem;
 }
 
 .badge-card--unlocked .badge-icon {
+  background: var(--funkollection-secondary);
   color: white;
 }
 
-.lock-overlay {
-  position: absolute;
-  bottom: -4px;
-  right: -4px;
-  font-size: 0.8rem;
-  background: #ccc;
-  color: white;
-  border-radius: 50%;
-  width: 1.2rem;
-  height: 1.2rem;
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #6c7068;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.badge-card--unlocked .status-pill {
+  color: var(--funkollection-primary);
+}
+
+.badge-copy {
+  flex: 1;
+}
+
+.badge-copy p {
+  font-size: 0.86rem;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+  color: #6c7068;
+  font-size: 0.76rem;
+}
+
+.progress-label strong {
+  color: var(--funkollection-primary);
+}
+
+.progress-track {
+  height: 0.45rem;
+}
+
+.progress-values {
+  margin: 0.35rem 0 0;
+  color: #767a72;
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.badge-skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 1rem;
+  width: min(100%, 1280px);
+  margin: 1rem auto 0;
+}
+
+.badge-skeleton span {
+  height: 15rem;
+  border-radius: 12px;
+  background: #eceee8;
+}
+
+.error-state,
+.page-status {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 1rem;
+  min-height: 14rem;
+  padding: 2rem;
 }
 
-.badge-label {
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: #333;
+.error-state {
+  color: #7a3526;
 }
 
-.badge-desc {
-  font-size: 0.78rem;
-  color: #888;
-  line-height: 1.4;
+.error-state .pi,
+.page-status .pi {
+  font-size: 1.5rem;
 }
 
-.badge-progress {
-  width: 100%;
-  margin-top: 0.5rem;
+.error-state p,
+.page-status p {
+  margin: 0.2rem 0 0;
 }
 
-.progress-bar-track {
-  width: 100%;
-  height: 6px;
-  background: #eee;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background: var(--funkollection-secondary);
-  border-radius: 999px;
-  transition: width 0.4s ease;
-}
-
-.progress-text {
-  font-size: 0.72rem;
-  color: #aaa;
-  text-align: right;
-  margin-top: 0.25rem;
-}
-
-.badge-unlocked-date {
-  font-size: 0.75rem;
-  color: var(--funkollection-secondary);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.25rem;
+.paywall-container {
+  display: grid;
+  min-height: 70vh;
+  place-items: center;
 }
 
 @media (max-width: 768px) {
-  .badges-grid {
-    grid-template-columns: repeat(2, 1fr);
-    padding: 0 0.75rem;
-    gap: 1rem;
+  .feature-page {
+    padding: 1rem;
+  }
+
+  .progress-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-score {
+    text-align: left;
+  }
+
+  .section-header {
+    flex-direction: column;
+  }
+
+  .badges-grid,
+  .badge-skeleton {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview-track span,
+  .progress-track span {
+    transition: none;
   }
 }
 </style>
