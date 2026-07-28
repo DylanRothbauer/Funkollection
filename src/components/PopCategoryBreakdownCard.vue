@@ -1,144 +1,221 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Chart from 'primevue/chart'
 import { useUserFunkos } from '../composables/useUserFunkos'
 
-const { funkos, loading } = useUserFunkos() // use shared reactive funkos here
-
+const { funkos, loading } = useUserFunkos()
 const chartData = ref(null)
 const backgroundColors = [
-  '#3B82F6',
-  '#F97316',
-  '#EF4444',
-  '#10B981',
-  '#8B5CF6',
-  '#F59E0B',
-  '#6B7280',
+  '#2f4f4f',
+  '#8a9a5b',
+  '#c28f52',
+  '#6f7f69',
+  '#a8674f',
+  '#b4a56a',
+  '#8b8176',
 ]
 
-// Computed property to check if funkos exist and have items
-const hasFunkos = computed(() => Array.isArray(funkos?.value) && funkos.value.length > 0)
+const hasFunkos = computed(() => Array.isArray(funkos.value) && funkos.value.length > 0)
 
 function computeCategoryData() {
   const categoryCount = {}
 
   funkos.value.forEach((pop) => {
-    let series = null
-
-    // Prefer series if valid non-empty string
-    if (pop.series && pop.series.trim()) {
-      series = pop.series.trim()
-    }
-    // fallback to category if series missing or empty
-    else if (pop.category && pop.category.trim()) {
-      series = pop.category.trim()
-    }
-
-    if (!series) {
-      console.warn('[CategoryBreakdown] Pop with missing series/category:', pop)
-      series = 'No Series'
-    }
-
+    const series = pop.series?.trim() || pop.category?.trim() || 'No series'
     categoryCount[series] = (categoryCount[series] || 0) + 1
   })
 
-  // Sort by descending count
   const sorted = Object.entries(categoryCount).sort((a, b) => b[1] - a[1])
-
-  // Take top 6 categories and sum rest as 'Other'
   const top = sorted.slice(0, 6)
   const otherCount = sorted.slice(6).reduce((sum, [, count]) => sum + count, 0)
 
-  const labels = top.map(([category]) => category)
-  if (otherCount > 0) labels.push('Other')
-
-  const data = top.map(([, count]) => count)
-  if (otherCount > 0) data.push(otherCount)
+  if (otherCount > 0) top.push(['Other', otherCount])
 
   chartData.value = {
-    labels,
+    labels: top.map(([label]) => label),
     datasets: [
       {
-        data,
+        data: top.map(([, count]) => count),
         backgroundColor: backgroundColors,
-        borderWidth: 0,
+        borderColor: '#ffffff',
+        borderWidth: 3,
+        hoverOffset: 4,
       },
     ],
   }
 }
 
-const chartOptions = ref({
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: {
+    duration: 500,
+  },
   plugins: {
-    legend: {
-      display: false
-    }
+    legend: { display: false },
+    tooltip: {
+      callbacks: {
+        label: (context) => `${context.label}: ${context.raw} Pops`,
+      },
+    },
   },
-  cutout: '60%'
-})
+  cutout: '68%',
+}
 
-// Recompute whenever funkos updates
-watch(
-  funkos,
-  () => {
-    computeCategoryData()
-  },
-  { immediate: true },
-)
+watch(funkos, computeCategoryData, { immediate: true })
 </script>
 
 <template>
-  <div
-    class="pop-card shadow rounded-lg bg-white flex flex-col items-center justify-center py-8 px-6"
-    style="min-width: 320px; min-height: 340px"
-  >
-    <div class="font-semibold text-lg text-gray-500 mb-4" style="letter-spacing: 0.03em">
-      Top Categories
+  <article class="dashboard-card category-card" aria-labelledby="category-title">
+    <header class="card-header">
+      <div>
+        <p class="card-kicker">Collection mix</p>
+        <h2 id="category-title">Top series</h2>
+      </div>
+      <span class="pi pi-chart-pie card-icon" aria-hidden="true"></span>
+    </header>
+
+    <div v-if="loading" class="chart-skeleton" aria-label="Loading series breakdown"></div>
+
+    <div v-else-if="!hasFunkos" class="empty-state">
+      <span class="pi pi-chart-pie" aria-hidden="true"></span>
+      <p>No collection data yet.</p>
+      <small>Your most collected series will appear here.</small>
     </div>
 
-    <div v-if="loading" class="text-2xl text-gray-400">...</div>
+    <div v-else-if="!chartData?.labels?.length" class="empty-state">
+      <p>No series information is available.</p>
+    </div>
 
-    <template v-else>
-      <div v-if="!hasFunkos" class="text-gray-400 text-lg">No Pops in your collection yet.</div>
-
-      <div
-        v-else-if="!chartData?.labels?.length || !chartData.datasets[0]?.data.some((v) => v > 0)"
-        class="text-gray-400 text-lg"
-      >
-        No category data available.
+    <div v-else class="chart-layout">
+      <div class="chart-wrap" aria-label="Doughnut chart of top Funko series">
+        <Chart type="doughnut" :data="chartData" :options="chartOptions" />
       </div>
-
-      <template v-else>
-        <Chart
-          type="doughnut"
-          :data="chartData"
-          :options="chartOptions"
-          style="width: 220px; height: 220px"
-        />
-        <div class="mt-4 w-full flex flex-col items-center">
-          <div
-            v-for="(label, i) in chartData.labels"
-            :key="label"
-            class="flex items-center gap-2 mb-1 text-base"
-          >
-            <span
-              :style="{
-                background: chartData.datasets[0].backgroundColor[i],
-                width: '14px',
-                height: '14px',
-                display: 'inline-block',
-                borderRadius: '3px',
-              }"
-            ></span>
-            <span class="font-semibold text-gray-700">{{ label }}</span>
-            <span class="ml-2 font-extrabold text-gray-900 text-lg">{{
-              chartData.datasets[0].data[i]
-            }}</span>
-          </div>
-          <div class="text-lg text-gray-600 mt-2">Breakdown of your collection by series</div>
-        </div>
-      </template>
-    </template>
-  </div>
+      <ul class="legend-list" aria-label="Series totals">
+        <li v-for="(label, index) in chartData.labels" :key="label">
+          <span
+            class="legend-dot"
+            :style="{ backgroundColor: chartData.datasets[0].backgroundColor[index] }"
+            aria-hidden="true"
+          ></span>
+          <span class="legend-label">{{ label }}</span>
+          <strong>{{ chartData.datasets[0].data[index] }}</strong>
+        </li>
+      </ul>
+    </div>
+  </article>
 </template>
 
-<style scoped></style>
+<style scoped>
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.card-kicker {
+  margin: 0 0 0.1rem;
+  color: var(--funkollection-secondary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+h2 {
+  margin: 0;
+  color: var(--funkollection-primary);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.35rem;
+}
+
+.card-icon {
+  color: var(--funkollection-secondary);
+  font-size: 1.2rem;
+}
+
+.chart-layout {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.9fr) minmax(10rem, 1.1fr);
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.chart-wrap {
+  height: 190px;
+  min-width: 0;
+}
+
+.legend-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend-list li {
+  display: grid;
+  grid-template-columns: 0.65rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  color: #62665e;
+  font-size: 0.86rem;
+}
+
+.legend-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+}
+
+.legend-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend-list strong {
+  color: var(--funkollection-primary);
+}
+
+.empty-state {
+  display: grid;
+  min-height: 13rem;
+  place-items: center;
+  align-content: center;
+  color: #74786e;
+  text-align: center;
+}
+
+.empty-state .pi {
+  margin-bottom: 0.5rem;
+  color: var(--funkollection-secondary);
+  font-size: 1.5rem;
+}
+
+.empty-state p,
+.empty-state small {
+  margin: 0;
+}
+
+.chart-skeleton {
+  height: 13rem;
+  border-radius: 10px;
+  background: #eceee8;
+}
+
+@media (max-width: 540px) {
+  .chart-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-wrap {
+    --p-chart-animation-duration: 0ms;
+  }
+}
+</style>
