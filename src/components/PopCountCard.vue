@@ -8,18 +8,70 @@ const popCount = computed(() => funkos.value.length)
 </script>
 
 <template>
-  <div
-    class="pop-card shadow rounded-lg bg-white flex flex-col items-center justify-center py-8 px-6"
-    style="min-width: 260px"
-  >
-    <div class="text-lg font-semibold text-gray-500 mb-2" style="letter-spacing: 0.03em">
-      Collection Size
+  <article class="dashboard-card metric-card" aria-labelledby="collection-size-title">
+    <div class="metric-icon" aria-hidden="true">
+      <span class="pi pi-box"></span>
     </div>
-    <div class="text-6xl font-extrabold mb-2" style="color: var(--funkollection-secondary)">
-      {{ loading.value ? '...' : popCount }}
+    <div>
+      <p id="collection-size-title" class="metric-label">Collection size</p>
+      <div v-if="loading" class="metric-skeleton" aria-label="Loading collection size"></div>
+      <p v-else class="metric-value">{{ popCount.toLocaleString() }}</p>
+      <p class="metric-help">Pops across your entire collection</p>
     </div>
-    <div class="text-lg text-gray-600">Number of Funko Pops you own</div>
-  </div>
+  </article>
 </template>
 
-<style scoped></style>
+<style scoped>
+.metric-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.metric-icon {
+  display: grid;
+  flex: 0 0 3.25rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(138, 154, 91, 0.14);
+  color: var(--funkollection-primary);
+  font-size: 1.25rem;
+}
+
+.metric-label,
+.metric-help,
+.metric-value {
+  margin: 0;
+}
+
+.metric-label {
+  color: #696c64;
+  font-size: 0.82rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  color: var(--funkollection-primary);
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(2.25rem, 5vw, 3.2rem);
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.metric-help {
+  color: #777a72;
+  font-size: 0.86rem;
+}
+
+.metric-skeleton {
+  width: 7rem;
+  height: 2.6rem;
+  margin: 0.3rem 0;
+  border-radius: 8px;
+  background: #eceee8;
+}
+</style>

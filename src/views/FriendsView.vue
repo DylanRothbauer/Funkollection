@@ -1,43 +1,43 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { db } from '../firebase.js'
-import {
-  collection, getDocs, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, where, addDoc
-} from 'firebase/firestore'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { getAuth } from 'firebase/auth'
+import { collection, doc, getDoc, getDocs, onSnapshot, setDoc } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
+import { useRouter } from 'vue-router'
+import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import { useToast } from 'primevue/usetoast'
-import { useRouter } from 'vue-router'
+import { db } from '../firebase.js'
+import AppEmptyState from '@/components/AppEmptyState.vue'
+import AppPageHeader from '@/components/AppPageHeader.vue'
 import PaywallCard from '@/components/PaywallCard.vue'
-import { getDoc as getDocFire } from 'firebase/firestore'
-import { getFunctions, httpsCallable } from 'firebase/functions'
 
 const auth = getAuth()
 const toast = useToast()
 const router = useRouter()
 
-// Premium check
 const isPremium = ref(false)
 const isLoadingUserData = ref(true)
-
-// Friends state
 const friends = ref([])
 const friendRequests = ref([])
 const isLoadingFriends = ref(true)
-
-// Add friend dialog
 const showAddFriendDialog = ref(false)
 const searchQuery = ref('')
 const searchResults = ref([])
 const isSearching = ref(false)
 const sentRequests = ref([])
+const friendSearchQuery = ref('')
+const pendingAction = ref('')
+const unsubscribers = []
 
 onMounted(async () => {
   const currentUser = auth.currentUser
-  if (!currentUser) return
+  if (!currentUser) {
+    isLoadingUserData.value = false
+    isLoadingFriends.value = false
+    return
+  }
 
-  // Check admin/premium
   const userDocRef = doc(db, 'users', currentUser.uid)
   const userDocSnap = await getDoc(userDocRef)
   if (userDocSnap.exists() && userDocSnap.data().isAdmin) {
@@ -45,477 +45,691 @@ onMounted(async () => {
   } else {
     const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
     const subSnap = await getDocs(subscriptionsRef)
-    isPremium.value = subSnap.docs.some(d => {
-      const data = d.data()
+    isPremium.value = subSnap.docs.some((subscriptionDoc) => {
+      const data = subscriptionDoc.data()
       return data.status === 'active' || data.status === 'trialing'
     })
   }
   isLoadingUserData.value = false
 
-  if (isPremium.value) {
-    //await fetchFriends()
-    const friendsRef = collection(db, 'users', currentUser.uid, 'friends')
-      onSnapshot(friendsRef, (snapshot) => {
-        friends.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-        isLoadingFriends.value = false
-      })
+  if (!isPremium.value) return
 
-    //await fetchFriendRequests()
-    const friendReqRef = collection(db, 'users', currentUser.uid, 'friendRequests')
-      onSnapshot(friendReqRef, (snapshot) => {
-        friendRequests.value = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      })
-
-    //await fetchSentRequests()
-    const requestsRef = collection(db, 'users', currentUser.uid, 'sentRequests')
-      onSnapshot(requestsRef, (snapshot) => {
-        sentRequests.value = snapshot.docs.map(d => d.data().to)
-})
-  }
+  unsubscribers.push(
+    onSnapshot(collection(db, 'users', currentUser.uid, 'friends'), (snapshot) => {
+      friends.value = snapshot.docs.map((friendDoc) => ({ id: friendDoc.id, ...friendDoc.data() }))
+      isLoadingFriends.value = false
+    }),
+    onSnapshot(collection(db, 'users', currentUser.uid, 'friendRequests'), (snapshot) => {
+      friendRequests.value = snapshot.docs.map((requestDoc) => ({
+        id: requestDoc.id,
+        ...requestDoc.data(),
+      }))
+    }),
+    onSnapshot(collection(db, 'users', currentUser.uid, 'sentRequests'), (snapshot) => {
+      sentRequests.value = snapshot.docs.map((requestDoc) => requestDoc.data().to)
+    }),
+  )
 })
 
-async function fetchFriends() {
-  isLoadingFriends.value = true
-  const currentUser = auth.currentUser
-  const friendsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'friends'))
-  friends.value = friendsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-  isLoadingFriends.value = false
-}
+onBeforeUnmount(() => {
+  unsubscribers.forEach((unsubscribe) => unsubscribe())
+})
 
-async function fetchFriendRequests() {
-  const currentUser = auth.currentUser
-  const requestsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'friendRequests'))
-  friendRequests.value = requestsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-}
-
-async function fetchSentRequests() {
-  const currentUser = auth.currentUser
-  // Check all users' friendRequests to see if current user sent them
-  // Instead, track locally in a sentRequests subcollection
-  const sentSnap = await getDocs(collection(db, 'users', currentUser.uid, 'sentRequests'))
-  sentRequests.value = sentSnap.docs.map(d => d.data().to)
-}
-
-// Search users by display name
 async function searchUsers() {
   if (!searchQuery.value.trim()) return
   isSearching.value = true
   searchResults.value = []
 
-  const currentUser = auth.currentUser
-  const usersSnap = await getDocs(collection(db, 'users'))
-
-  const query = searchQuery.value.toLowerCase().trim()
-  searchResults.value = usersSnap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .filter(u =>
-      u.id !== currentUser.uid &&
-      u.displayName?.toLowerCase().includes(query)
-    )
-
-  isSearching.value = false
+  try {
+    const currentUser = auth.currentUser
+    const usersSnap = await getDocs(collection(db, 'users'))
+    const normalizedQuery = searchQuery.value.toLowerCase().trim()
+    searchResults.value = usersSnap.docs
+      .map((userDoc) => ({ id: userDoc.id, ...userDoc.data() }))
+      .filter(
+        (candidate) =>
+          candidate.id !== currentUser.uid &&
+          candidate.displayName?.toLowerCase().includes(normalizedQuery),
+      )
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: 'Search unavailable',
+      detail: 'We could not search for users. Please try again.',
+      life: 3000,
+    })
+  } finally {
+    isSearching.value = false
+  }
 }
 
 function isAlreadyFriend(userId) {
-  return friends.value.some(f => f.id === userId)
+  return friends.value.some((friend) => friend.id === userId)
 }
 
 function hasSentRequest(userId) {
-  if (isAlreadyFriend(userId)) return false // already friends, override
+  if (isAlreadyFriend(userId)) return false
   return sentRequests.value.includes(userId)
 }
 
 async function sendFriendRequest(targetUser) {
   const currentUser = auth.currentUser
+  pendingAction.value = `send-${targetUser.id}`
   try {
-    // Add to target user's friendRequests
-    await setDoc(
-      doc(db, 'users', targetUser.id, 'friendRequests', currentUser.uid),
-      {
-        from: currentUser.uid,
-        fromName: currentUser.displayName || currentUser.email,
-        fromPhoto: currentUser.photoURL || '',
-        sentAt: new Date().toISOString(),
-        status: 'pending'
-      }
-    )
-
-    // Track sent request locally
-    await setDoc(
-      doc(db, 'users', currentUser.uid, 'sentRequests', targetUser.id),
-      { to: targetUser.id, sentAt: new Date().toISOString() }
-    )
-
+    await setDoc(doc(db, 'users', targetUser.id, 'friendRequests', currentUser.uid), {
+      from: currentUser.uid,
+      fromName: currentUser.displayName || currentUser.email,
+      fromPhoto: currentUser.photoURL || '',
+      sentAt: new Date().toISOString(),
+      status: 'pending',
+    })
+    await setDoc(doc(db, 'users', currentUser.uid, 'sentRequests', targetUser.id), {
+      to: targetUser.id,
+      sentAt: new Date().toISOString(),
+    })
     sentRequests.value.push(targetUser.id)
-    toast.add({ severity: 'success', summary: 'Request Sent', detail: `Friend request sent to ${targetUser.displayName}!`, life: 3000 })
-  } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to send friend request.', life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Request sent',
+      detail: `Friend request sent to ${targetUser.displayName}!`,
+      life: 3000,
+    })
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: 'Request failed',
+      detail: 'Failed to send friend request.',
+      life: 3000,
+    })
+  } finally {
+    pendingAction.value = ''
   }
 }
 
 async function acceptRequest(request) {
+  pendingAction.value = `accept-${request.from}`
   try {
-    const functions = getFunctions()
-    const acceptFriendRequest = httpsCallable(functions, 'acceptFriendRequest')
+    const acceptFriendRequest = httpsCallable(getFunctions(), 'acceptFriendRequest')
     await acceptFriendRequest({
       fromUid: request.from,
       fromName: request.fromName,
-      fromPhoto: request.fromPhoto
+      fromPhoto: request.fromPhoto,
     })
-
-    //await fetchFriends()
-    //await fetchFriendRequests()
-    //await fetchSentRequests()
-
-    toast.add({ severity: 'success', summary: 'Friend Added', detail: `You and ${request.fromName} are now friends!`, life: 3000 })
-  } catch (e) {
-    console.error(e)
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to accept request.', life: 3000 })
+    toast.add({
+      severity: 'success',
+      summary: 'Friend added',
+      detail: `You and ${request.fromName} are now friends!`,
+      life: 3000,
+    })
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: 'Request failed',
+      detail: 'Failed to accept request.',
+      life: 3000,
+    })
+  } finally {
+    pendingAction.value = ''
   }
 }
 
 async function declineRequest(request) {
+  pendingAction.value = `decline-${request.from}`
   try {
-    const functions = getFunctions()
-    const declineFriendRequest = httpsCallable(functions, 'declineFriendRequest')
+    const declineFriendRequest = httpsCallable(getFunctions(), 'declineFriendRequest')
     await declineFriendRequest({ fromUid: request.from })
-    toast.add({ severity: 'info', summary: 'Request Declined', life: 2000 })
-  } catch (e) {
-    console.error(e)
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to decline request.', life: 3000 })
+    toast.add({ severity: 'info', summary: 'Request declined', life: 2000 })
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: 'Request failed',
+      detail: 'Failed to decline request.',
+      life: 3000,
+    })
+  } finally {
+    pendingAction.value = ''
   }
 }
 
 async function unfriend(friend) {
+  pendingAction.value = `remove-${friend.id}`
   try {
-    const functions = getFunctions()
-    const unfriendUser = httpsCallable(functions, 'unfriendUser')
+    const unfriendUser = httpsCallable(getFunctions(), 'unfriendUser')
     await unfriendUser({ friendUid: friend.id })
-
-    friends.value = friends.value.filter(f => f.id !== friend.id)
-    toast.add({ severity: 'info', summary: 'Unfriended', detail: `${friend.displayName} removed.`, life: 2000 })
-  } catch (e) {
-    console.error(e)
-    toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to unfriend.', life: 3000 })
+    friends.value = friends.value.filter((existingFriend) => existingFriend.id !== friend.id)
+    toast.add({
+      severity: 'info',
+      summary: 'Friend removed',
+      detail: `${friend.displayName} removed.`,
+      life: 2000,
+    })
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: 'Action failed',
+      detail: 'Failed to remove friend.',
+      life: 3000,
+    })
+  } finally {
+    pendingAction.value = ''
   }
 }
 
 function viewCollection(friend) {
-  router.push({ name: 'friendCollection', params: { friendId: friend.id, friendName: friend.displayName } })
+  router.push({
+    name: 'friendCollection',
+    params: { friendId: friend.id, friendName: friend.displayName },
+  })
 }
 
-const friendSearchQuery = ref('')
 const filteredFriends = computed(() => {
-  const q = friendSearchQuery.value.toLowerCase()
-  if (!q) return friends.value
-  return friends.value.filter(f => f.displayName?.toLowerCase().includes(q))
+  const normalizedQuery = friendSearchQuery.value.toLowerCase()
+  if (!normalizedQuery) return friends.value
+  return friends.value.filter((friend) =>
+    friend.displayName?.toLowerCase().includes(normalizedQuery),
+  )
 })
 </script>
 
 <template>
-  <div v-if="isLoadingUserData" class="loading-state">
-    <p>Loading...</p>
-  </div>
-
-  <div v-else-if="!isPremium" class="paywall-container">
-    <PaywallCard feature-name="Friends" />
-  </div>
-
-  <div v-else class="friends-container">
-    <header class="flex items-center justify-between p-4 bg-white shadow-sm rounded-b-lg mb-8">
-      <h1 class="text-3xl font-bold text-gray-800">Friends</h1>
-      <Button label="Add Friend" icon="pi pi-user-plus" @click="showAddFriendDialog = true" />
-    </header>
-
-    <!-- Incoming Friend Requests -->
-    <div v-if="friendRequests.length > 0" class="requests-section">
-      <h2 class="section-title">Friend Requests <span class="request-badge">{{ friendRequests.length }}</span></h2>
-      <div class="requests-list">
-        <div v-for="request in friendRequests" :key="request.from" class="request-card">
-          <div class="flex items-center gap-3">
-            <img v-if="request.fromPhoto" :src="request.fromPhoto" class="friend-avatar" :alt="request.fromName" />
-            <div v-else class="friend-avatar-placeholder">{{ request.fromName?.charAt(0) }}</div>
-            <span class="font-semibold text-gray-800">{{ request.fromName }}</span>
-          </div>
-          <div class="flex gap-2">
-            <Button label="Accept" icon="pi pi-check" size="small" @click="acceptRequest(request)" />
-            <Button label="Decline" icon="pi pi-times" size="small" severity="secondary" @click="declineRequest(request)" />
-          </div>
-        </div>
+  <main class="feature-page">
+    <section v-if="isLoadingUserData" class="page-status" aria-live="polite">
+      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+      <div>
+        <h1>Preparing your friends</h1>
+        <p>Checking your membership and social connections.</p>
       </div>
-    </div>
+    </section>
 
-    <!-- Friends List -->
-    <div class="friends-section">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="section-title">My Friends ({{ friends.length }})</h2>
-        <input
-          v-model="friendSearchQuery"
-          placeholder="Search friends..."
-          class="friend-search-input"
-        />
-      </div>
+    <section v-else-if="!isPremium" class="paywall-container">
+      <PaywallCard feature-name="Friends" />
+    </section>
 
-      <div v-if="isLoadingFriends" class="text-gray-400 text-center py-8">Loading friends...</div>
-
-      <div v-else-if="friends.length === 0" class="empty-state">
-        <i class="pi pi-users text-5xl text-gray-300 mb-4"></i>
-        <p class="text-gray-400 text-lg">No friends yet. Add some!</p>
-      </div>
-
-      <div v-else-if="filteredFriends.length === 0" class="empty-state">
-        <p class="text-gray-400 text-lg">No friends match your search.</p>
-      </div>
-
-      <div v-else class="friends-table">
-        <div class="friends-table-header">
-          <span>Name</span>
-          <span>Added</span>
-          <span>Actions</span>
-        </div>
-        <div v-for="friend in filteredFriends" :key="friend.id" class="friends-table-row">
-          <div class="flex items-center gap-3">
-            <img v-if="friend.photoURL" :src="friend.photoURL" class="friend-avatar" :alt="friend.displayName" />
-            <div v-else class="friend-avatar-placeholder">{{ friend.displayName?.charAt(0) }}</div>
-            <span class="font-medium text-gray-800">{{ friend.displayName }}</span>
-          </div>
-          <span class="text-gray-400 text-sm">{{ friend.addedAt ? new Date(friend.addedAt).toLocaleDateString() : '' }}</span>
-          <div class="flex gap-2">
-            <Button label="View Collection" icon="pi pi-eye" size="small" severity="info" @click="viewCollection(friend)" />
-            <Button icon="pi pi-user-minus" size="small" severity="danger" outlined @click="unfriend(friend)" />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Add Friend Dialog -->
-    <Dialog v-model:visible="showAddFriendDialog" modal header="Add a Friend" :style="{ width: '480px' }">
-      <div class="flex flex-col gap-4 p-2">
-        <div class="flex gap-2">
-          <input
-            v-model="searchQuery"
-            placeholder="Search by display name..."
-            class="flex-1 p-2 border rounded"
-            @keyup.enter="searchUsers"
+    <template v-else>
+      <AppPageHeader
+        eyebrow="Your collector circle"
+        title="Friends"
+        description="Connect with collectors you know, respond to requests, and explore each other’s collections."
+      >
+        <template #actions>
+          <Button
+            label="Find a friend"
+            icon="pi pi-user-plus"
+            @click="showAddFriendDialog = true"
           />
-          <Button label="Search" icon="pi pi-search" @click="searchUsers" :loading="isSearching" />
-        </div>
+        </template>
+      </AppPageHeader>
 
-        <div v-if="isSearching" class="text-center text-gray-400 py-4">Searching...</div>
+      <section v-if="friendRequests.length" class="social-card requests-card">
+        <header class="section-header">
+          <div>
+            <p class="section-kicker">Needs your attention</p>
+            <h2>Incoming requests</h2>
+          </div>
+          <span class="count-badge">{{ friendRequests.length }}</span>
+        </header>
 
-        <div v-else-if="searchResults.length === 0 && searchQuery" class="text-center text-gray-400 py-4">
-          No users found.
-        </div>
-
-        <div v-else class="flex flex-col gap-2">
-          <div v-for="result in searchResults" :key="result.id" class="search-result-row">
-            <div class="flex items-center gap-3">
-              <img v-if="result.photoURL" :src="result.photoURL" class="friend-avatar" :alt="result.displayName" />
-              <div v-else class="friend-avatar-placeholder">{{ result.displayName?.charAt(0) }}</div>
-              <span class="font-medium">{{ result.displayName }}</span>
+        <div class="request-list">
+          <article v-for="request in friendRequests" :key="request.from" class="person-row">
+            <div class="person">
+              <img
+                v-if="request.fromPhoto"
+                :src="request.fromPhoto"
+                class="avatar"
+                :alt="request.fromName"
+              />
+              <span v-else class="avatar avatar--placeholder" aria-hidden="true">
+                {{ request.fromName?.charAt(0) || '?' }}
+              </span>
+              <div>
+                <strong>{{ request.fromName || 'Collector' }}</strong>
+                <span>Would like to connect</span>
+              </div>
             </div>
-            <Button
-              v-if="isAlreadyFriend(result.id)"
-              label="Friends"
-              icon="pi pi-check"
-              size="small"
-              disabled
-            />
-            <Button
-              v-else-if="hasSentRequest(result.id)"
-              label="Request Sent"
-              icon="pi pi-clock"
-              size="small"
-              severity="secondary"
-              disabled
-            />
-            <Button
-              v-else
-              label="Add Friend"
-              icon="pi pi-user-plus"
-              size="small"
-              @click="sendFriendRequest(result)"
-            />
+            <div class="row-actions">
+              <Button
+                label="Accept"
+                icon="pi pi-check"
+                size="small"
+                :loading="pendingAction === `accept-${request.from}`"
+                @click="acceptRequest(request)"
+              />
+              <Button
+                label="Decline"
+                icon="pi pi-times"
+                size="small"
+                severity="secondary"
+                outlined
+                :loading="pendingAction === `decline-${request.from}`"
+                @click="declineRequest(request)"
+              />
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="social-card friends-card" aria-labelledby="friends-list-title">
+        <header class="section-header friends-header">
+          <div>
+            <p class="section-kicker">Your connections</p>
+            <h2 id="friends-list-title">Current friends</h2>
+            <p class="section-summary">
+              {{ friends.length }} connected collector{{ friends.length === 1 ? '' : 's' }}
+            </p>
+          </div>
+          <label class="friend-search">
+            <span class="sr-only">Search current friends</span>
+            <i class="pi pi-search" aria-hidden="true"></i>
+            <input v-model="friendSearchQuery" type="search" placeholder="Search friends" />
+          </label>
+        </header>
+
+        <div v-if="isLoadingFriends" class="friend-skeleton" aria-live="polite">
+          <span v-for="index in 3" :key="index"></span>
+        </div>
+
+        <AppEmptyState
+          v-else-if="friends.length === 0"
+          icon="pi-users"
+          title="Build your collector circle"
+          description="Find another Funkollection member to compare collections and stay connected."
+        >
+          <Button
+            label="Find a friend"
+            icon="pi pi-user-plus"
+            @click="showAddFriendDialog = true"
+          />
+        </AppEmptyState>
+
+        <AppEmptyState
+          v-else-if="filteredFriends.length === 0"
+          icon="pi-search"
+          title="No friends match that search"
+          description="Try a different display name or clear your search."
+        />
+
+        <div v-else class="friend-list">
+          <article v-for="friend in filteredFriends" :key="friend.id" class="person-row friend-row">
+            <div class="person">
+              <img
+                v-if="friend.photoURL"
+                :src="friend.photoURL"
+                class="avatar"
+                :alt="friend.displayName"
+              />
+              <span v-else class="avatar avatar--placeholder" aria-hidden="true">
+                {{ friend.displayName?.charAt(0) || '?' }}
+              </span>
+              <div>
+                <strong>{{ friend.displayName || 'Collector' }}</strong>
+                <span>
+                  {{
+                    friend.addedAt
+                      ? `Friends since ${new Date(friend.addedAt).toLocaleDateString()}`
+                      : 'Funkollection friend'
+                  }}
+                </span>
+              </div>
+            </div>
+            <div class="row-actions">
+              <Button
+                label="View collection"
+                icon="pi pi-eye"
+                size="small"
+                outlined
+                @click="viewCollection(friend)"
+              />
+              <Button
+                icon="pi pi-user-minus"
+                text
+                severity="danger"
+                size="small"
+                :loading="pendingAction === `remove-${friend.id}`"
+                :aria-label="`Remove ${friend.displayName || 'friend'}`"
+                @click="unfriend(friend)"
+              />
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <Dialog
+        v-model:visible="showAddFriendDialog"
+        modal
+        header="Find a friend"
+        :style="{ width: 'min(34rem, calc(100vw - 2rem))' }"
+      >
+        <div class="friend-dialog">
+          <p>Search by the display name another collector uses on Funkollection.</p>
+          <form class="dialog-search" @submit.prevent="searchUsers">
+            <label for="friend-search-input">Display name</label>
+            <div>
+              <input
+                id="friend-search-input"
+                v-model="searchQuery"
+                placeholder="Enter a display name"
+                autocomplete="off"
+              />
+              <Button type="submit" label="Search" icon="pi pi-search" :loading="isSearching" />
+            </div>
+          </form>
+
+          <div v-if="isSearching" class="dialog-status" aria-live="polite">Searching members…</div>
+          <AppEmptyState
+            v-else-if="searchResults.length === 0 && searchQuery"
+            icon="pi-search"
+            title="No members found"
+            description="Check the display name and try again."
+          />
+          <div v-else-if="searchResults.length" class="search-results">
+            <article v-for="result in searchResults" :key="result.id" class="person-row">
+              <div class="person">
+                <img
+                  v-if="result.photoURL"
+                  :src="result.photoURL"
+                  class="avatar"
+                  :alt="result.displayName"
+                />
+                <span v-else class="avatar avatar--placeholder" aria-hidden="true">
+                  {{ result.displayName?.charAt(0) || '?' }}
+                </span>
+                <strong>{{ result.displayName }}</strong>
+              </div>
+              <Button
+                v-if="isAlreadyFriend(result.id)"
+                label="Friends"
+                icon="pi pi-check"
+                disabled
+              />
+              <Button
+                v-else-if="hasSentRequest(result.id)"
+                label="Request sent"
+                icon="pi pi-clock"
+                severity="secondary"
+                disabled
+              />
+              <Button
+                v-else
+                label="Add friend"
+                icon="pi pi-user-plus"
+                :loading="pendingAction === `send-${result.id}`"
+                @click="sendFriendRequest(result)"
+              />
+            </article>
           </div>
         </div>
-      </div>
-    </Dialog>
-  </div>
+      </Dialog>
+    </template>
+  </main>
 </template>
 
 <style scoped>
-.friends-container {
-  background: var(--funkollection-background);
-  min-height: 100vh;
-  padding-bottom: 2rem;
+.feature-page {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  padding: clamp(1.25rem, 3vw, 3rem);
+  background:
+    radial-gradient(circle at top right, rgba(138, 154, 91, 0.1), transparent 30rem),
+    var(--funkollection-background);
+  color: var(--funkollection-text);
 }
 
-.paywall-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 2rem;
-  background: var(--funkollection-background);
+.feature-page > * {
+  width: min(100%, 1280px);
+  margin-inline: auto;
 }
 
-.loading-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  color: #666;
-}
-
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--funkollection-primary);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.request-badge {
-  background: #EF4444;
-  color: white;
-  border-radius: 999px;
-  padding: 0.1rem 0.5rem;
-  font-size: 0.8rem;
-}
-
-.requests-section {
-  background: white;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  margin: 0 1.5rem 1.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-
-.requests-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.social-card {
   margin-top: 1rem;
+  padding: clamp(1.15rem, 2vw, 1.5rem);
+  border: 1px solid rgba(47, 79, 79, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(47, 79, 79, 0.06);
 }
 
-.request-card {
+.requests-card {
+  border-left: 4px solid var(--funkollection-secondary);
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-kicker {
+  margin: 0 0 0.15rem;
+  color: var(--funkollection-secondary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+h1,
+h2 {
+  margin: 0;
+  color: var(--funkollection-primary);
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+h2 {
+  font-size: 1.45rem;
+}
+
+.section-summary {
+  margin: 0.2rem 0 0;
+  color: #74786e;
+  font-size: 0.85rem;
+}
+
+.count-badge {
+  min-width: 2rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: var(--funkollection-primary);
+  color: white;
+  font-weight: 800;
+  text-align: center;
+}
+
+.request-list,
+.friend-list,
+.search-results {
+  display: grid;
+  gap: 0;
+}
+
+.person-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
-  background: #f9f9f9;
-  border-radius: 0.75rem;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid rgba(47, 79, 79, 0.1);
 }
 
-.friends-section {
-  background: white;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  margin: 10px 1.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+.person {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.friend-search-input {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: 0.5rem;
-  font-size: 0.95rem;
-  outline: none;
-  width: 220px;
+.person > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
 }
 
-.friend-avatar {
-  width: 36px;
-  height: 36px;
+.person strong,
+.person span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person span {
+  color: #74786e;
+  font-size: 0.8rem;
+}
+
+.avatar {
+  flex: 0 0 2.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.friend-avatar-placeholder {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+.avatar--placeholder {
+  display: grid;
+  place-items: center;
   background: var(--funkollection-secondary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 1rem;
+  color: white !important;
+  font-weight: 800;
 }
 
-.friends-table {
+.row-actions {
   display: flex;
-  flex-direction: column;
+  flex: 0 0 auto;
   gap: 0.5rem;
 }
 
-.friends-table-header {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  padding: 0.5rem 1rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #999;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.friends-table-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background: #f9f9f9;
-  border-radius: 0.75rem;
-  transition: background 0.15s;
-}
-
-.friends-table-row:hover {
-  background: #f0f0f0;
-}
-
-.search-result-row {
+.friend-search {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem;
-  background: #f9f9f9;
-  border-radius: 0.75rem;
 }
 
-.search-result-row span {
-  color: #333333 !important;
+.friend-search .pi {
+  position: absolute;
+  left: 0.75rem;
+  color: #777a72;
 }
 
-.empty-state {
+.friend-search input,
+.dialog-search input {
+  min-height: 42px;
+  border: 1px solid rgba(47, 79, 79, 0.22);
+  border-radius: 8px;
+  background: white;
+  color: var(--funkollection-text);
+}
+
+.friend-search input {
+  width: min(18rem, 100%);
+  padding: 0.55rem 0.75rem 0.55rem 2.25rem;
+}
+
+.friend-search input:focus-visible,
+.dialog-search input:focus-visible {
+  outline: 3px solid rgba(138, 154, 91, 0.3);
+  outline-offset: 2px;
+}
+
+.friend-dialog > p {
+  margin-top: 0;
+  color: #656961;
+}
+
+.dialog-search label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--funkollection-primary);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.dialog-search > div {
   display: flex;
-  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dialog-search input {
+  min-width: 0;
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+}
+
+.dialog-status {
+  padding: 2rem;
+  color: #6e7269;
+  text-align: center;
+}
+
+.friend-skeleton {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.friend-skeleton span {
+  height: 4rem;
+  border-radius: 8px;
+  background: #eceee8;
+}
+
+.page-status {
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
-  color: #aaa;
+  gap: 1rem;
+  min-height: 55vh;
+}
+
+.page-status .pi {
+  color: var(--funkollection-secondary);
+  font-size: 1.5rem;
+}
+
+.page-status p {
+  margin: 0.2rem 0 0;
+  color: #686b64;
+}
+
+.paywall-container {
+  display: grid;
+  min-height: 70vh;
+  place-items: center;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 @media (max-width: 768px) {
-  .requests-section,
-  .friends-section {
-    margin: 0 0.75rem 1rem;
+  .feature-page {
     padding: 1rem;
   }
 
-  .friends-table-header {
-    display: none;
+  .friends-header,
+  .person-row {
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  .friends-table-row {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+  .friend-search,
+  .friend-search input,
+  .row-actions {
+    width: 100%;
   }
 
-  .friend-search-input {
-    width: 140px;
+  .row-actions :deep(.p-button) {
+    flex: 1 1 auto;
+  }
+
+  .dialog-search > div {
+    flex-direction: column;
   }
 }
 </style>

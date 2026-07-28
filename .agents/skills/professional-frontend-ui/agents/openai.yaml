@@ -1,0 +1,4 @@
+interface:
+  display_name: "Professional Frontend UI"
+  short_description: "Polish Funkollection pages and components"
+  default_prompt: "Use $professional-frontend-ui to redesign this Funkollection interface while preserving its behavior."
