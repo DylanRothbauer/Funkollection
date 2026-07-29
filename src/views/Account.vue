@@ -11,6 +11,7 @@ import {
   selectPrimarySubscription,
 } from '../utils/subscriptionPresentation.js'
 import { hasShareCardAccess } from '../utils/shareCard.js'
+import LoginStreakSummary from '../components/LoginStreakSummary.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -229,6 +230,17 @@ onBeforeUnmount(() => {
                 <dd>{{ isAdmin ? 'Administrator' : 'Collector' }}</dd>
               </div>
             </dl>
+          </section>
+
+          <section class="account-section" aria-labelledby="streak-heading">
+            <div class="section-heading">
+              <span class="section-icon"><i class="pi pi-bolt" aria-hidden="true"></i></span>
+              <div>
+                <h2 id="streak-heading">Daily login streak</h2>
+                <p>A simple record of consecutive days you open Funkollection.</p>
+              </div>
+            </div>
+            <LoginStreakSummary />
           </section>
 
           <section class="account-section billing-section" aria-labelledby="billing-heading">

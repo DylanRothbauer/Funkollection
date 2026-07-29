@@ -6,6 +6,7 @@ const Anthropic = require('@anthropic-ai/sdk')
 const { getFirestore } = require('firebase-admin/firestore')
 const admin = require('firebase-admin')
 const { assignCompetitionRanks, createPublicEntry } = require('./leaderboardLogic')
+const { calculateStreakTransition, utcDateKey } = require('./loginStreakLogic')
 const { selectEntitledSubscription } = require('./subscriptionEntitlement')
 
 admin.initializeApp()
@@ -14,6 +15,57 @@ const db = getFirestore()
 setGlobalOptions({ maxInstances: 10 })
 
 const leaderboardEntries = db.collection('leaderboardEntries')
+
+exports.recordDailyLogin = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'You must be signed in.')
+  }
+
+  const now = new Date()
+  const todayKey = utcDateKey(now)
+  const nextDayStart = new Date(now)
+  nextDayStart.setUTCHours(24, 0, 0, 0)
+  const streakRef = db
+    .collection('users')
+    .doc(request.auth.uid)
+    .collection('streaks')
+    .doc('dailyLogin')
+
+  const result = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(streakRef)
+    const transition = calculateStreakTransition(snapshot.data(), todayKey)
+    const stored = snapshot.data() || {}
+    const needsRepair =
+      stored.currentStreak !== transition.currentStreak ||
+      stored.highestStreak !== transition.highestStreak ||
+      stored.streakStartedDate !== transition.streakStartedDate
+
+    if (transition.creditedToday || !snapshot.exists || needsRepair) {
+      transaction.set(
+        streakRef,
+        {
+          currentStreak: transition.currentStreak,
+          highestStreak: transition.highestStreak,
+          lastCreditedDate: transition.lastCreditedDate,
+          lastCreditedAt: admin.firestore.FieldValue.serverTimestamp(),
+          streakStartedDate: transition.streakStartedDate,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          timezone: 'UTC',
+          version: 1,
+        },
+        { merge: true },
+      )
+    }
+
+    return transition
+  })
+
+  return {
+    ...result,
+    timezone: 'UTC',
+    nextDayStartsAt: nextDayStart.toISOString(),
+  }
+})
 
 async function hasPremiumAccess(userId) {
   const expectedPriceId = process.env.PREMIUM_PRICE_ID

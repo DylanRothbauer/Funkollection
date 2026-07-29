@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth'
 import { collection, doc, onSnapshot } from 'firebase/firestore'
 import { db } from '@/firebase.js'
+import { useLoginStreak } from '../composables/useLoginStreak.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -15,6 +16,13 @@ const currentUser = ref(null)
 const closeButton = ref(null)
 const unsubscribers = []
 let unsubscribeAuth = null
+const { evaluateForUser, evaluateIfDayMayHaveChanged, resetForSignOut } = useLoginStreak()
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible' && currentUser.value) {
+    void evaluateIfDayMayHaveChanged(currentUser.value.uid)
+  }
+}
 
 const premiumLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: 'pi-th-large' },
@@ -30,6 +38,7 @@ const collectionLinks = [
 ]
 
 onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   unsubscribeAuth = onAuthStateChanged(auth, (user) => {
     currentUser.value = user
     unsubscribers.splice(0).forEach((unsubscribe) => unsubscribe())
@@ -37,8 +46,11 @@ onMounted(() => {
     if (!user) {
       friendRequestCount.value = 0
       newBadgesCount.value = 0
+      resetForSignOut()
       return
     }
+
+    void evaluateForUser(user.uid)
 
     unsubscribers.push(
       onSnapshot(collection(db, 'users', user.uid, 'friendRequests'), (snapshot) => {
@@ -65,6 +77,7 @@ watch(showMobileNav, async (isOpen) => {
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
   unsubscribeAuth?.()
   unsubscribers.forEach((unsubscribe) => unsubscribe())
   document.body.style.overflow = ''

@@ -12,6 +12,7 @@ import RecentAdditionsCard from '../components/RecentAdditionsCard.vue'
 import MostValuablePopsCard from '../components/MostValuablePopsCard.vue'
 import StickerBreakdownCard from '../components/StickerBreakdownCard.vue'
 import PaywallCard from '../components/PaywallCard.vue'
+import LoginStreakIndicator from '../components/LoginStreakIndicator.vue'
 import { anySubscriptionGrantsPremium } from '../utils/subscriptionEntitlement.js'
 
 const isLoadingUserData = ref(true)
@@ -93,10 +94,13 @@ onBeforeUnmount(() => {
           </p>
         </div>
 
-        <RouterLink class="primary-action" to="/collection">
-          <span class="pi pi-box" aria-hidden="true"></span>
-          Manage collection
-        </RouterLink>
+        <div class="hero-actions">
+          <LoginStreakIndicator light />
+          <RouterLink class="primary-action" to="/collection">
+            <span class="pi pi-box" aria-hidden="true"></span>
+            Manage collection
+          </RouterLink>
+        </div>
       </header>
 
       <div v-if="error" class="dashboard-alert" role="alert">
@@ -187,6 +191,13 @@ onBeforeUnmount(() => {
   transition:
     background-color 0.2s ease,
     transform 0.2s ease;
+}
+
+.hero-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .primary-action:hover {
@@ -316,6 +327,16 @@ onBeforeUnmount(() => {
   }
 
   .primary-action {
+    width: 100%;
+  }
+
+  .hero-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .hero-actions :deep(.streak-trigger) {
     width: 100%;
   }
 
