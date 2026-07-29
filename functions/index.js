@@ -6,6 +6,7 @@ const Anthropic = require('@anthropic-ai/sdk')
 const { getFirestore } = require('firebase-admin/firestore')
 const admin = require('firebase-admin')
 const { assignCompetitionRanks, createPublicEntry } = require('./leaderboardLogic')
+const { selectEntitledSubscription } = require('./subscriptionEntitlement')
 
 admin.initializeApp()
 const db = getFirestore()
@@ -15,19 +16,69 @@ setGlobalOptions({ maxInstances: 10 })
 const leaderboardEntries = db.collection('leaderboardEntries')
 
 async function hasPremiumAccess(userId) {
+  const expectedPriceId = process.env.PREMIUM_PRICE_ID
+  if (!expectedPriceId) {
+    functions.logger.error('PREMIUM_PRICE_ID is not configured.')
+    return false
+  }
+
   const [userSnapshot, subscriptionsSnapshot] = await Promise.all([
     db.collection('users').doc(userId).get(),
-    db
-      .collection('customers')
-      .doc(userId)
-      .collection('subscriptions')
-      .where('status', 'in', ['active', 'trialing'])
-      .limit(1)
-      .get(),
+    db.collection('customers').doc(userId).collection('subscriptions').get(),
   ])
 
-  return Boolean(userSnapshot.data()?.isAdmin) || !subscriptionsSnapshot.empty
+  if (userSnapshot.data()?.isAdmin) return true
+  return Boolean(
+    selectEntitledSubscription(
+      subscriptionsSnapshot.docs.map((subscription) => subscription.data()),
+      { expectedPriceId },
+    ),
+  )
 }
+
+function requiredCheckoutConfig() {
+  const priceId = process.env.PREMIUM_PRICE_ID
+  const appUrl = process.env.APP_URL
+  if (!priceId || !appUrl) {
+    throw new HttpsError('failed-precondition', 'Premium checkout is not configured.')
+  }
+
+  let trustedAppUrl
+  try {
+    trustedAppUrl = new URL(appUrl)
+  } catch {
+    throw new HttpsError('failed-precondition', 'Premium checkout is not configured.')
+  }
+  if (!['http:', 'https:'].includes(trustedAppUrl.protocol)) {
+    throw new HttpsError('failed-precondition', 'Premium checkout is not configured.')
+  }
+  return { priceId, appUrl: trustedAppUrl.origin }
+}
+
+exports.createPremiumCheckout = onCall({ cors: true }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'You must be signed in.')
+  }
+  if (await hasPremiumAccess(request.auth.uid)) {
+    throw new HttpsError('already-exists', 'Your Premium subscription is already active.')
+  }
+
+  const { priceId, appUrl } = requiredCheckoutConfig()
+  const checkoutRef = db
+    .collection('customers')
+    .doc(request.auth.uid)
+    .collection('checkout_sessions')
+    .doc()
+
+  await checkoutRef.set({
+    price: priceId,
+    success_url: `${appUrl}/account?checkout=success`,
+    cancel_url: `${appUrl}/account?checkout=canceled`,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  })
+
+  return { sessionId: checkoutRef.id }
+})
 
 async function rebuildLeaderboardEntry(userId) {
   const userRef = db.collection('users').doc(userId)
@@ -170,6 +221,9 @@ exports.funkoChat = onCall({ cors: true, secrets: ['ANTHROPIC_KEY'] }, async (re
   }
 
   const userId = request.auth.uid
+  if (!(await hasPremiumAccess(userId))) {
+    throw new HttpsError('permission-denied', 'An active Premium plan is required.')
+  }
 
   // Check admin status and daily limit
   const userRef = db.collection('users').doc(userId)

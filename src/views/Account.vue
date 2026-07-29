@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { signOut } from 'firebase/auth'
 import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore'
 import { useAuthUser } from '../composables/useAuthUser.js'
@@ -12,9 +12,8 @@ import {
 } from '../utils/subscriptionPresentation.js'
 import { hasShareCardAccess } from '../utils/shareCard.js'
 
-const PREMIUM_PRICE_ID = 'price_1T86oGLancjOeFyBC9PctmbE'
-
 const router = useRouter()
+const route = useRoute()
 const { user, loading: authLoading } = useAuthUser()
 const isLoadingAccount = ref(true)
 const billingError = ref('')
@@ -28,6 +27,15 @@ let unsubscribeSubscriptions = null
 
 const primarySubscription = computed(() => selectPrimarySubscription(subscriptions.value))
 const subscriptionView = computed(() => presentSubscription(primarySubscription.value))
+const checkoutNotice = computed(() => {
+  if (route.query.checkout === 'canceled') {
+    return 'Checkout was canceled. Your plan has not changed, and you can try again when ready.'
+  }
+  if (route.query.checkout !== 'success') return ''
+  return subscriptionView.value.plan === 'Free'
+    ? 'Checkout returned successfully. We are waiting for Stripe to confirm your subscription; this page will update automatically.'
+    : 'Stripe has confirmed your Premium subscription.'
+})
 const displayName = computed(() => user.value?.displayName || 'Funkollection collector')
 const emailAddress = computed(() => user.value?.email || 'Email unavailable')
 const profileInitial = computed(() => displayName.value.charAt(0).toUpperCase())
@@ -54,7 +62,7 @@ const headerStatus = computed(() => {
 })
 const canUseShareCard = computed(() =>
   hasShareCardAccess({
-    subscriptionStatus: primarySubscription.value?.status,
+    subscription: primarySubscription.value,
     isAdmin: isAdmin.value,
   }),
 )
@@ -102,7 +110,7 @@ async function upgradeToPremium() {
   actionError.value = ''
 
   try {
-    const checkoutUrl = await getCheckoutUrl(app, PREMIUM_PRICE_ID)
+    const checkoutUrl = await getCheckoutUrl(app)
     window.location.assign(checkoutUrl)
   } catch {
     actionError.value = 'We could not start checkout. Please try again in a moment.'
@@ -177,6 +185,10 @@ onBeforeUnmount(() => {
       <div v-if="actionError" class="account-alert" role="alert">
         <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
         <span>{{ actionError }}</span>
+      </div>
+      <div v-else-if="checkoutNotice" class="account-alert account-alert--info" role="status">
+        <i class="pi pi-info-circle" aria-hidden="true"></i>
+        <span>{{ checkoutNotice }}</span>
       </div>
 
       <div class="account-layout">
@@ -420,6 +432,12 @@ onBeforeUnmount(() => {
 .account-alert {
   width: min(100%, 1280px);
   margin-inline: auto;
+}
+
+.account-alert--info {
+  border-color: #b8cabd;
+  background: #f1f7f2;
+  color: var(--funkollection-primary);
 }
 
 .account-hero {

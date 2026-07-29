@@ -12,6 +12,7 @@ import RecentAdditionsCard from '../components/RecentAdditionsCard.vue'
 import MostValuablePopsCard from '../components/MostValuablePopsCard.vue'
 import StickerBreakdownCard from '../components/StickerBreakdownCard.vue'
 import PaywallCard from '../components/PaywallCard.vue'
+import { anySubscriptionGrantsPremium } from '../utils/subscriptionEntitlement.js'
 
 const isLoadingUserData = ref(true)
 const isPremium = ref(false)
@@ -42,10 +43,9 @@ onMounted(async () => {
     unsubscribeSubscriptions = onSnapshot(
       subscriptionsRef,
       (snapshot) => {
-        isPremium.value = snapshot.docs.some((subscriptionDoc) => {
-          const data = subscriptionDoc.data()
-          return data.status === 'active' || data.status === 'trialing'
-        })
+        isPremium.value = anySubscriptionGrantsPremium(
+          snapshot.docs.map((subscriptionDoc) => subscriptionDoc.data()),
+        )
         isLoadingUserData.value = false
       },
       () => {

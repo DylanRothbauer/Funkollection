@@ -6,6 +6,7 @@ import { marked } from 'marked'
 import { app, auth, db } from '../firebase.js'
 import AppPageHeader from '../components/AppPageHeader.vue'
 import PaywallCard from '../components/PaywallCard.vue'
+import { anySubscriptionGrantsPremium } from '../utils/subscriptionEntitlement.js'
 
 const isPremium = ref(false)
 const isAdmin = ref(false)
@@ -123,10 +124,9 @@ onMounted(async () => {
     unsubscribeSubscriptions = onSnapshot(
       collection(db, 'customers', currentUser.uid, 'subscriptions'),
       (snapshot) => {
-        isPremium.value = snapshot.docs.some((subscriptionDoc) => {
-          const data = subscriptionDoc.data()
-          return data.status === 'active' || data.status === 'trialing'
-        })
+        isPremium.value = anySubscriptionGrantsPremium(
+          snapshot.docs.map((subscriptionDoc) => subscriptionDoc.data()),
+        )
         isLoadingUserData.value = false
       },
       () => {

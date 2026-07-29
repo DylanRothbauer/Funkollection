@@ -98,7 +98,27 @@ service cloud.firestore {
     match /users/{userId} {
       // Authenticated profile reads support the existing friend-search flow.
       allow read: if signedIn();
-      allow write: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'displayName',
+          'email',
+          'photoURL',
+          'createdAt'
+        ]);
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'uid',
+          'displayName',
+          'email',
+          'photoURL',
+          'createdAt',
+          'newBadges',
+          'leaderboardOptIn'
+        ])
+        && request.resource.data.uid == userId;
+      allow delete: if isOwner(userId);
     }
 
     match /users/{userId}/funkos/{funkoId} {
@@ -161,7 +181,8 @@ service cloud.firestore {
       allow read: if isOwner(uid);
 
       match /checkout_sessions/{id} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow write: if false;
       }
 
       match /subscriptions/{id} {

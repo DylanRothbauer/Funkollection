@@ -68,7 +68,7 @@ onMounted(async () => {
       subscriptionSnapshot.docs.map((subscriptionDoc) => subscriptionDoc.data()),
     )
     isEligible.value = hasShareCardAccess({
-      subscriptionStatus: subscription?.status,
+      subscription,
       isAdmin: Boolean(userSnapshot.data()?.isAdmin),
     })
 

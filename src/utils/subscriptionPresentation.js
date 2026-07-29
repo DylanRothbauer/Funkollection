@@ -1,3 +1,8 @@
+import {
+  subscriptionGrantsPremium,
+  subscriptionTimestampMillis,
+} from './subscriptionEntitlement.js'
+
 const STATUS_PRIORITY = {
   trialing: 0,
   active: 1,
@@ -85,6 +90,11 @@ export function presentSubscription(subscription) {
   const cancelAtPeriodEnd = Boolean(subscription.cancel_at_period_end)
   const details = []
   const interval = billingInterval(subscription)
+  const projectedAccessEnd =
+    status === 'trialing'
+      ? subscription.trial_end || subscription.current_period_end
+      : subscription.current_period_end
+  const projectedAccessEndMs = subscriptionTimestampMillis(projectedAccessEnd)
 
   if (interval) details.push({ label: 'Billing cycle', value: interval })
   if (formatSubscriptionDate(subscription.current_period_start)) {
@@ -92,6 +102,22 @@ export function presentSubscription(subscription) {
       label: 'Current period started',
       value: formatSubscriptionDate(subscription.current_period_start),
     })
+  }
+
+  if (['active', 'trialing'].includes(status) && !subscriptionGrantsPremium(subscription)) {
+    const isExpired = projectedAccessEndMs !== null && projectedAccessEndMs <= Date.now()
+    return {
+      plan: isExpired ? 'Free' : planName(subscription),
+      label: isExpired ? 'Expired' : 'Temporarily unavailable',
+      tone: isExpired ? 'neutral' : 'warning',
+      message: isExpired
+        ? 'Your previous Premium access period has ended. You are currently using the free plan.'
+        : 'We cannot confirm the current access period yet. This page will update when Stripe finishes syncing.',
+      interval,
+      details,
+      canManage: true,
+      canUpgrade: isExpired,
+    }
   }
 
   if (status === 'trialing') {

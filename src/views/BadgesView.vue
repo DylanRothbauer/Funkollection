@@ -14,6 +14,7 @@ import { useToast } from 'primevue/usetoast'
 import { db } from '../firebase.js'
 import AppPageHeader from '@/components/AppPageHeader.vue'
 import PaywallCard from '@/components/PaywallCard.vue'
+import { anySubscriptionGrantsPremium } from '../utils/subscriptionEntitlement.js'
 
 const auth = getAuth()
 const toast = useToast()
@@ -180,10 +181,9 @@ onMounted(async () => {
     } else {
       const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
       const subSnap = await getDocs(subscriptionsRef)
-      isPremium.value = subSnap.docs.some((subscriptionDoc) => {
-        const data = subscriptionDoc.data()
-        return data.status === 'active' || data.status === 'trialing'
-      })
+      isPremium.value = anySubscriptionGrantsPremium(
+        subSnap.docs.map((subscriptionDoc) => subscriptionDoc.data()),
+      )
     }
 
     isLoadingUserData.value = false

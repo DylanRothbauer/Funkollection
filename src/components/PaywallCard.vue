@@ -11,8 +11,8 @@ import { getCheckoutUrl } from '../../stripePayment.js'
 const props = defineProps({
   featureName: {
     type: String,
-    default: 'This Feature'
-  }
+    default: 'This Feature',
+  },
 })
 
 const { user, loading } = useAuthUser()
@@ -20,6 +20,7 @@ const membershipTier = ref('Standard Member')
 const isLoadingUserData = ref(false)
 const isAdmin = ref(false)
 const isLoadingCheckout = ref(false)
+const checkoutError = ref('')
 
 const fetchMembershipTier = async () => {
   if (!user.value) return
@@ -40,18 +41,16 @@ const fetchMembershipTier = async () => {
 }
 
 const upgradeToPremium = async () => {
+  if (isLoadingCheckout.value) return
   isLoadingCheckout.value = true
-  console.log('Button clicked!')
-  const priceId = "price_1T86oGLancjOeFyBC9PctmbE"
+  checkoutError.value = ''
   try {
     const { getApp } = await import('firebase/app')
     const firebaseApp = getApp()
-    console.log('Calling getCheckoutUrl...')
-    const checkoutUrl = await getCheckoutUrl(firebaseApp, priceId)
-    console.log('Got checkout URL:', checkoutUrl)
-    window.location.href = checkoutUrl
-  } catch (error) {
-    console.error('Error during upgrade:', error.message, error)
+    const checkoutUrl = await getCheckoutUrl(firebaseApp)
+    window.location.assign(checkoutUrl)
+  } catch {
+    checkoutError.value = 'We could not start checkout. Please try again in a moment.'
     isLoadingCheckout.value = false
   }
 }
@@ -64,7 +63,6 @@ onMounted(() => {
 <template>
   <div class="paywall-card">
     <div class="paywall-content">
-
       <!-- Admin view -->
       <div v-if="isAdmin">
         <i class="pi pi-shield paywall-icon" style="color: var(--funkollection-secondary)"></i>
@@ -77,7 +75,8 @@ onMounted(() => {
         <i class="pi pi-lock paywall-icon"></i>
         <h2 class="paywall-title">{{ featureName }} is a Premium Feature</h2>
         <p class="paywall-description">
-          Unlock full analytics, detailed insights, and complete collection management with a Premium membership.
+          Unlock full analytics, detailed insights, and complete collection management with a
+          Premium membership.
         </p>
 
         <div class="paywall-features">
@@ -106,18 +105,17 @@ onMounted(() => {
           @click="upgradeToPremium"
           class="upgrade-button"
         />
+        <p v-if="checkoutError" class="checkout-error" role="alert">{{ checkoutError }}</p>
 
         <p class="paywall-footer">
-          Signed in as {{ user ? (user.displayName || user.email) : 'Guest' }} <br>
+          Signed in as {{ user ? user.displayName || user.email : 'Guest' }} <br />
           Membership: {{ membershipTier }}
         </p>
       </div>
-
     </div>
   </div>
 </template>
 <style scoped>
-
 .paywall-card {
   display: flex;
   align-items: center;
@@ -203,6 +201,11 @@ onMounted(() => {
   margin-top: 2rem;
 }
 
+.checkout-error {
+  color: var(--p-red-700, #b42318);
+  margin: -1rem 0 1rem;
+}
+
 @media (max-width: 768px) {
   .paywall-container {
     padding: 1rem;
@@ -220,5 +223,4 @@ onMounted(() => {
     font-size: 2.5rem;
   }
 }
-
 </style>
