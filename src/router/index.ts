@@ -14,6 +14,7 @@ import FunkoChat from '@/views/FunkoChat.vue'
 import FriendsView from '@/views/FriendsView.vue'
 import FriendsCollectionView from '@/views/FriendsCollectionView.vue'
 import BadgesView from '@/views/BadgesView.vue'
+import ShareCardView from '@/views/ShareCardView.vue'
 import { Badge } from 'primevue'
 
 const router = createRouter({
@@ -59,28 +60,34 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'account/share-card',
+          name: 'shareCard',
+          component: ShareCardView,
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'funkochat',
           name: 'funkochat',
           component: FunkoChat,
-          meta: { requiresAuth: true }
+          meta: { requiresAuth: true },
         },
         {
           path: 'friends',
           name: 'friends',
           component: FriendsView,
-          meta: { requiresAuth: true }
+          meta: { requiresAuth: true },
         },
         {
           path: 'friends/:friendId',
           name: 'friendCollection',
           component: FriendsCollectionView,
-          meta: { requiresAuth: true }
+          meta: { requiresAuth: true },
         },
         {
           path: 'badges',
           name: 'badges',
           component: BadgesView,
-          meta: {requiresAuth: true}
+          meta: { requiresAuth: true },
         },
       ],
     },
@@ -92,9 +99,9 @@ const router = createRouter({
     },
     {
       path: '/termsofservice',
-        name: 'TermsOfService',
-        component: TermsOfService,
-        meta: { requiresAuth: false },
+      name: 'TermsOfService',
+      component: TermsOfService,
+      meta: { requiresAuth: false },
     },
     {
       path: '/aboutus',
