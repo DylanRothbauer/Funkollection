@@ -479,19 +479,6 @@ const refreshCollection = async () => {
 </template>
 
 <style scoped>
-.p-datatable-header-cell {
-  background-color: var(--funkollection-secondary) !important;
-  color: var(--funkollection-soft-white) !important;
-}
-
-.p-datatable-header {
-  background: var(--funkollection-background) !important;
-}
-
-.p-toolbar {
-  background: var(--funkollection-background) !important;
-}
-
 .mobile-cards {
   display: flex;
   flex-direction: column;
@@ -679,6 +666,15 @@ const refreshCollection = async () => {
 
 .table-card {
   overflow-x: auto;
+  /* Keep this light table stable when PrimeVue follows a dark OS preference. */
+  --p-datatable-row-background: #ffffff;
+  --p-datatable-row-color: var(--funkollection-text);
+  --p-datatable-row-hover-background: #f3f5ec;
+  --p-datatable-row-hover-color: var(--funkollection-text);
+  --p-datatable-row-selected-background: #e8edda;
+  --p-datatable-row-selected-color: var(--funkollection-primary);
+  --p-datatable-header-cell-hover-background: #e9ecdf;
+  --p-datatable-header-cell-hover-color: var(--funkollection-primary);
 }
 
 .pop-cell {
@@ -731,6 +727,12 @@ const refreshCollection = async () => {
   gap: 0.15rem;
 }
 
+.collection-workspace :deep(.p-datatable-tbody > tr) {
+  background: var(--p-datatable-row-background);
+  color: var(--p-datatable-row-color);
+  transition: background-color 0.16s ease;
+}
+
 .collection-workspace :deep(.p-datatable-header-cell) {
   border-color: rgba(47, 79, 79, 0.12) !important;
   background: #f4f3eb !important;
@@ -740,12 +742,74 @@ const refreshCollection = async () => {
   text-transform: uppercase;
 }
 
-.collection-workspace :deep(.p-datatable-tbody > tr > td) {
-  border-color: rgba(47, 79, 79, 0.09);
+.collection-workspace :deep(.p-datatable-sortable-column:hover) {
+  background: var(--p-datatable-header-cell-hover-background) !important;
+  color: var(--p-datatable-header-cell-hover-color) !important;
 }
 
-.collection-workspace :deep(.p-datatable-tbody > tr:hover) {
-  background: rgba(138, 154, 91, 0.07);
+.collection-workspace :deep(.p-datatable-sortable-column:focus-visible) {
+  outline: 3px solid rgba(138, 154, 91, 0.42);
+  outline-offset: -3px;
+}
+
+.collection-workspace :deep(.p-datatable-sort-icon) {
+  color: currentColor;
+}
+
+.collection-workspace :deep(.p-datatable-tbody > tr > td) {
+  border-color: rgba(47, 79, 79, 0.09);
+  color: inherit;
+}
+
+.collection-workspace :deep(.p-datatable-tbody > tr:not(.p-datatable-row-selected):hover) {
+  background: var(--p-datatable-row-hover-background);
+  color: var(--p-datatable-row-hover-color);
+}
+
+.collection-workspace :deep(.p-datatable-tbody > tr.p-datatable-row-selected) {
+  background: var(--p-datatable-row-selected-background);
+  color: var(--p-datatable-row-selected-color);
+  box-shadow: inset 3px 0 var(--funkollection-secondary);
+}
+
+.collection-workspace :deep(.p-datatable-tbody > tr.p-datatable-row-selected:hover) {
+  background: #e1e8cf;
+  color: var(--funkollection-primary);
+}
+
+.collection-workspace :deep(.p-datatable-tbody > tr:focus-visible) {
+  outline: 3px solid rgba(138, 154, 91, 0.5);
+  outline-offset: -3px;
+}
+
+.collection-workspace :deep(.row-actions .p-button) {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--funkollection-primary);
+}
+
+.collection-workspace :deep(.row-actions .p-button:hover) {
+  background: rgba(47, 79, 79, 0.09);
+  color: var(--funkollection-primary);
+}
+
+.collection-workspace :deep(.row-actions .p-button[aria-pressed='true']) {
+  background: rgba(139, 66, 62, 0.09);
+  color: #8b423e;
+}
+
+.collection-workspace :deep(.row-actions .p-button.p-button-danger) {
+  color: #a33f34;
+}
+
+.collection-workspace :deep(.row-actions .p-button.p-button-danger:hover) {
+  background: #fff0ec;
+  color: #873126;
+}
+
+.collection-workspace :deep(.row-actions .p-button:focus-visible) {
+  outline: 3px solid rgba(138, 154, 91, 0.42);
+  outline-offset: 1px;
 }
 
 .collection-workspace :deep(.p-paginator) {
@@ -943,6 +1007,12 @@ const refreshCollection = async () => {
 
   .skeleton-row span:nth-child(n + 3) {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collection-workspace :deep(.p-datatable-tbody > tr) {
+    transition: none;
   }
 }
 </style>

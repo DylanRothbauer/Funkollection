@@ -15,6 +15,7 @@ import FriendsView from '@/views/FriendsView.vue'
 import FriendsCollectionView from '@/views/FriendsCollectionView.vue'
 import BadgesView from '@/views/BadgesView.vue'
 import ShareCardView from '@/views/ShareCardView.vue'
+import LeaderboardView from '@/views/LeaderboardView.vue'
 import { Badge } from 'primevue'
 
 const router = createRouter({
@@ -87,6 +88,12 @@ const router = createRouter({
           path: 'badges',
           name: 'badges',
           component: BadgesView,
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'leaderboard',
+          name: 'leaderboard',
+          component: LeaderboardView,
           meta: { requiresAuth: true },
         },
       ],

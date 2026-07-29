@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "leaderboardEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "popCount", "order": "DESCENDING" },
+        { "fieldPath": "tieSort", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -1,0 +1,188 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function validOptionalString(data, field, maxLength) {
+      return !(field in data)
+        || (data[field] is string && data[field].size() <= maxLength);
+    }
+
+    function validCatalogPop(data) {
+      return data.keys().hasAll([
+          'funkoId',
+          'name',
+          'title',
+          'series',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'funkoId',
+          'name',
+          'title',
+          'series',
+          'createdAt'
+        ])
+        && data.funkoId is string
+        && data.funkoId.size() <= 100
+        && data.name is string
+        && data.name.size() <= 200
+        && data.title is string
+        && data.title.size() <= 300
+        && data.series is string
+        && data.series.size() <= 200
+        && data.createdAt is timestamp;
+    }
+
+    function validUserFunkoFields(data) {
+      return validOptionalString(data, 'funkoId', 100)
+        && validOptionalString(data, 'name', 200)
+        && validOptionalString(data, 'title', 300)
+        && validOptionalString(data, 'series', 200)
+        && validOptionalString(data, 'image', 900000)
+        && (!('quantity' in data)
+          || (data.quantity is int
+            && data.quantity >= 1
+            && data.quantity <= 1000000))
+        && (!('purchasePrice' in data)
+          || (data.purchasePrice is number
+            && data.purchasePrice >= 0
+            && data.purchasePrice <= 1000000))
+        && (!('stickers' in data)
+          || (data.stickers is list && data.stickers.size() <= 50))
+        && (!('addedAt' in data) || data.addedAt is timestamp);
+    }
+
+    function validNewUserFunko(data) {
+      return data.keys().hasAll([
+          'funkoId',
+          'name',
+          'title',
+          'series',
+          'quantity',
+          'addedAt',
+          'image',
+          'purchasePrice',
+          'stickers'
+        ])
+        && data.keys().hasOnly([
+          'funkoId',
+          'name',
+          'title',
+          'series',
+          'quantity',
+          'addedAt',
+          'image',
+          'purchasePrice',
+          'stickers'
+        ])
+        && validUserFunkoFields(data);
+    }
+
+    match /FunkoPops/{popId} {
+      allow read: if true;
+
+      // addFunkoPop creates a shared catalog entry from the signed-in client
+      // before adding the user's copy, so authenticated creates remain supported.
+      allow create: if signedIn() && validCatalogPop(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /users/{userId} {
+      // Authenticated profile reads support the existing friend-search flow.
+      allow read: if signedIn();
+      allow write: if isOwner(userId);
+    }
+
+    match /users/{userId}/funkos/{funkoId} {
+      allow read: if signedIn()
+        && (isOwner(userId)
+          || exists(/databases/$(database)/documents/users/$(request.auth.uid)/friends/$(userId)));
+
+      allow create: if isOwner(userId)
+        && validNewUserFunko(request.resource.data);
+
+      // Validate only supported changed fields so unchanged legacy fields do not
+      // prevent a user from editing an existing collection item.
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'funkoId',
+          'name',
+          'title',
+          'series',
+          'quantity',
+          'addedAt',
+          'image',
+          'purchasePrice',
+          'stickers'
+        ])
+        && validUserFunkoFields(request.resource.data);
+
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/favorites/{favoriteId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/badges/{badgeId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/friendRequests/{requestId} {
+      allow read, delete: if isOwner(userId);
+      allow create: if signedIn();
+    }
+
+    match /users/{userId}/friends/{friendId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/sentRequests/{requestId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Leaderboard documents are maintained by Admin SDK Cloud Functions and are
+    // exposed to clients only through callable functions.
+    match /leaderboardEntries/{entryId} {
+      allow read, write: if false;
+    }
+
+    // Firebase's Stripe extension writes with the Admin SDK, which bypasses
+    // client rules. These permissions preserve the extension's client contract.
+    match /customers/{uid} {
+      allow read: if isOwner(uid);
+
+      match /checkout_sessions/{id} {
+        allow read, write: if isOwner(uid);
+      }
+
+      match /subscriptions/{id} {
+        allow read: if isOwner(uid);
+      }
+
+      match /payments/{id} {
+        allow read: if isOwner(uid);
+      }
+    }
+
+    match /products/{id} {
+      allow read: if true;
+
+      match /prices/{id} {
+        allow read: if true;
+      }
+
+      match /tax_rates/{id} {
+        allow read: if true;
+      }
+    }
+  }
+}

@@ -21,6 +21,7 @@ const premiumLinks = [
   { to: '/funkochat', label: 'Funko Chat', icon: 'pi-sparkles' },
   { to: '/friends', label: 'Friends', icon: 'pi-users', badge: friendRequestCount },
   { to: '/badges', label: 'Badges', icon: 'pi-star', badge: newBadgesCount },
+  { to: '/leaderboard', label: 'Leaderboard', icon: 'pi-chart-bar' },
 ]
 
 const collectionLinks = [
