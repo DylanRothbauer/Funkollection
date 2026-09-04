@@ -1,42 +1,18 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { signOut } from 'firebase/auth'
-import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import { useAuthUser } from '../composables/useAuthUser.js'
-import { getCheckoutUrl, getPortalUrl } from '../../stripePayment.js'
-import { app, auth, db } from '../firebase.js'
-import {
-  presentSubscription,
-  selectPrimarySubscription,
-} from '../utils/subscriptionPresentation.js'
-import { hasShareCardAccess } from '../utils/shareCard.js'
+import { auth, db } from '../firebase.js'
 import LoginStreakSummary from '../components/LoginStreakSummary.vue'
 
 const router = useRouter()
-const route = useRoute()
 const { user, loading: authLoading } = useAuthUser()
 const isLoadingAccount = ref(true)
-const billingError = ref('')
 const actionError = ref('')
 const isAdmin = ref(false)
-const isStartingCheckout = ref(false)
-const isOpeningPortal = ref(false)
 const isSigningOut = ref(false)
-const subscriptions = ref([])
-let unsubscribeSubscriptions = null
-
-const primarySubscription = computed(() => selectPrimarySubscription(subscriptions.value))
-const subscriptionView = computed(() => presentSubscription(primarySubscription.value))
-const checkoutNotice = computed(() => {
-  if (route.query.checkout === 'canceled') {
-    return 'Checkout was canceled. Your plan has not changed, and you can try again when ready.'
-  }
-  if (route.query.checkout !== 'success') return ''
-  return subscriptionView.value.plan === 'Free'
-    ? 'Checkout returned successfully. We are waiting for Stripe to confirm your subscription; this page will update automatically.'
-    : 'Stripe has confirmed your Premium subscription.'
-})
 const displayName = computed(() => user.value?.displayName || 'Funkollection collector')
 const emailAddress = computed(() => user.value?.email || 'Email unavailable')
 const profileInitial = computed(() => displayName.value.charAt(0).toUpperCase())
@@ -55,25 +31,10 @@ const accountCreated = computed(() => {
     year: 'numeric',
   }).format(date)
 })
-const headerStatus = computed(() => {
-  if (isAdmin.value) return 'Administrator'
-  return subscriptionView.value.plan === 'Free'
-    ? 'Free plan'
-    : `${subscriptionView.value.plan} plan`
-})
-const canUseShareCard = computed(() =>
-  hasShareCardAccess({
-    subscription: primarySubscription.value,
-    isAdmin: isAdmin.value,
-  }),
-)
+const headerStatus = computed(() => (isAdmin.value ? 'Administrator' : 'Collector'))
 
 async function loadAccount(currentUser) {
-  unsubscribeSubscriptions?.()
-  unsubscribeSubscriptions = null
-  subscriptions.value = []
   isAdmin.value = false
-  billingError.value = ''
   actionError.value = ''
 
   if (!currentUser) {
@@ -87,49 +48,9 @@ async function loadAccount(currentUser) {
     const userSnapshot = await getDoc(doc(db, 'users', currentUser.uid))
     isAdmin.value = Boolean(userSnapshot.data()?.isAdmin)
   } catch {
-    actionError.value =
-      'Some account details could not be loaded. Your billing information is still available below.'
-  }
-
-  unsubscribeSubscriptions = onSnapshot(
-    collection(db, 'customers', currentUser.uid, 'subscriptions'),
-    (snapshot) => {
-      subscriptions.value = snapshot.docs.map((subscriptionDoc) => subscriptionDoc.data())
-      isLoadingAccount.value = false
-    },
-    () => {
-      billingError.value =
-        'Billing details are temporarily unavailable. Please refresh and try again.'
-      isLoadingAccount.value = false
-    },
-  )
-}
-
-async function upgradeToPremium() {
-  if (isStartingCheckout.value) return
-  isStartingCheckout.value = true
-  actionError.value = ''
-
-  try {
-    const checkoutUrl = await getCheckoutUrl(app)
-    window.location.assign(checkoutUrl)
-  } catch {
-    actionError.value = 'We could not start checkout. Please try again in a moment.'
-    isStartingCheckout.value = false
-  }
-}
-
-async function manageSubscription() {
-  if (isOpeningPortal.value) return
-  isOpeningPortal.value = true
-  actionError.value = ''
-
-  try {
-    const portalUrl = await getPortalUrl(app)
-    window.location.assign(portalUrl)
-  } catch {
-    actionError.value = 'We could not open billing management. Please try again in a moment.'
-    isOpeningPortal.value = false
+    actionError.value = 'Some account details could not be loaded. Please refresh and try again.'
+  } finally {
+    isLoadingAccount.value = false
   }
 }
 
@@ -149,9 +70,6 @@ async function handleSignOut() {
 
 watch(user, loadAccount, { immediate: true })
 
-onBeforeUnmount(() => {
-  unsubscribeSubscriptions?.()
-})
 </script>
 
 <template>
@@ -160,7 +78,7 @@ onBeforeUnmount(() => {
       <span class="loading-spinner" aria-hidden="true"></span>
       <div>
         <h1>Loading your account</h1>
-        <p>Checking your profile and subscription details.</p>
+        <p>Checking your profile and account details.</p>
       </div>
     </section>
 
@@ -170,7 +88,7 @@ onBeforeUnmount(() => {
           <p class="eyebrow">Account settings</p>
           <h1>Your account</h1>
           <p class="hero-intro">
-            Review your profile, subscription, and account tools in one place.
+            Review your profile and account tools in one place.
           </p>
         </div>
         <div class="identity-summary">
@@ -186,10 +104,6 @@ onBeforeUnmount(() => {
       <div v-if="actionError" class="account-alert" role="alert">
         <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
         <span>{{ actionError }}</span>
-      </div>
-      <div v-else-if="checkoutNotice" class="account-alert account-alert--info" role="status">
-        <i class="pi pi-info-circle" aria-hidden="true"></i>
-        <span>{{ checkoutNotice }}</span>
       </div>
 
       <div class="account-layout">
@@ -243,84 +157,6 @@ onBeforeUnmount(() => {
             <LoginStreakSummary />
           </section>
 
-          <section class="account-section billing-section" aria-labelledby="billing-heading">
-            <div class="section-heading">
-              <span class="section-icon"><i class="pi pi-wallet" aria-hidden="true"></i></span>
-              <div>
-                <h2 id="billing-heading">Subscription &amp; billing</h2>
-                <p>Your personal plan and billing-management options.</p>
-              </div>
-            </div>
-
-            <div v-if="billingError" class="inline-state inline-state--error" role="alert">
-              <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
-              <div>
-                <strong>Billing information unavailable</strong>
-                <span>{{ billingError }}</span>
-              </div>
-            </div>
-
-            <template v-else>
-              <div class="plan-summary">
-                <div>
-                  <span class="plan-label">Current plan</span>
-                  <h3>{{ subscriptionView.plan }}</h3>
-                  <span class="status-badge" :class="`status-badge--${subscriptionView.tone}`">
-                    <i class="pi pi-circle-fill" aria-hidden="true"></i>
-                    {{ subscriptionView.label }}
-                  </span>
-                </div>
-                <p>{{ subscriptionView.message }}</p>
-              </div>
-
-              <dl v-if="subscriptionView.details.length" class="billing-details">
-                <div v-for="detail in subscriptionView.details" :key="detail.label">
-                  <dt>{{ detail.label }}</dt>
-                  <dd>{{ detail.value }}</dd>
-                </div>
-              </dl>
-
-              <p v-if="isAdmin && !primarySubscription" class="admin-access-note">
-                <i class="pi pi-shield" aria-hidden="true"></i>
-                Your administrator access includes premium features, but it is separate from a paid
-                subscription.
-              </p>
-
-              <div class="billing-actions">
-                <button
-                  v-if="subscriptionView.canManage"
-                  type="button"
-                  class="primary-button"
-                  :disabled="isOpeningPortal"
-                  @click="manageSubscription"
-                >
-                  <i
-                    :class="['pi', isOpeningPortal ? 'pi-spin pi-spinner' : 'pi-external-link']"
-                    aria-hidden="true"
-                  ></i>
-                  {{ isOpeningPortal ? 'Opening billing…' : 'Manage subscription' }}
-                </button>
-                <button
-                  v-if="subscriptionView.canUpgrade"
-                  type="button"
-                  class="primary-button"
-                  :disabled="isStartingCheckout"
-                  @click="upgradeToPremium"
-                >
-                  <i
-                    :class="['pi', isStartingCheckout ? 'pi-spin pi-spinner' : 'pi-arrow-up-right']"
-                    aria-hidden="true"
-                  ></i>
-                  {{ isStartingCheckout ? 'Preparing checkout…' : 'Upgrade to Premium' }}
-                </button>
-                <p v-if="subscriptionView.canManage">
-                  Stripe’s secure billing portal handles payment methods, invoices, and
-                  cancellation.
-                </p>
-              </div>
-            </template>
-          </section>
-
           <section class="account-section" aria-labelledby="sharing-heading">
             <div class="section-heading">
               <span class="section-icon"><i class="pi pi-share-alt" aria-hidden="true"></i></span>
@@ -334,34 +170,16 @@ onBeforeUnmount(() => {
               <div>
                 <div class="setting-title">
                   <strong>Collection stats card</strong>
-                  <span class="premium-feature-label">Premium</span>
                 </div>
                 <p>
                   Turn your real collection totals into a polished 1080 × 1080 image for social
                   sharing.
                 </p>
               </div>
-              <RouterLink v-if="canUseShareCard" class="secondary-button" to="/account/share-card">
+              <RouterLink class="secondary-button" to="/account/share-card">
                 Create card
                 <i class="pi pi-arrow-right" aria-hidden="true"></i>
               </RouterLink>
-              <button
-                v-else-if="!billingError && subscriptionView.canUpgrade"
-                type="button"
-                class="secondary-button"
-                :disabled="isStartingCheckout"
-                @click="upgradeToPremium"
-              >
-                <i
-                  :class="['pi', isStartingCheckout ? 'pi-spin pi-spinner' : 'pi-lock']"
-                  aria-hidden="true"
-                ></i>
-                {{ isStartingCheckout ? 'Preparing…' : 'Unlock with Premium' }}
-              </button>
-              <span v-else class="access-unavailable">
-                <i class="pi pi-lock" aria-hidden="true"></i>
-                Access unavailable
-              </span>
             </div>
           </section>
         </div>
@@ -382,8 +200,7 @@ onBeforeUnmount(() => {
             <div class="admin-callout">
               <strong>Full feature access</strong>
               <p>
-                Your administrator role bypasses premium feature checks. Personal billing remains
-                separate above.
+                Your administrator role includes application management permissions.
               </p>
             </div>
           </section>
@@ -638,13 +455,11 @@ onBeforeUnmount(() => {
   font-size: 0.8rem;
 }
 
-.detail-list,
-.billing-details {
+.detail-list {
   margin: 0;
 }
 
-.detail-list > div,
-.billing-details > div {
+.detail-list > div {
   display: grid;
   grid-template-columns: minmax(8rem, 0.7fr) minmax(0, 1.3fr);
   gap: 1rem;
@@ -665,110 +480,6 @@ dd {
   color: var(--funkollection-text);
   font-size: 0.8rem;
   font-weight: 700;
-}
-
-.plan-summary {
-  display: grid;
-  grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1.3fr);
-  gap: 2rem;
-  align-items: center;
-  padding-block: 1.5rem;
-}
-
-.plan-label {
-  color: #767a73;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.plan-summary h3 {
-  margin: 0.15rem 0 0.65rem;
-  color: var(--funkollection-primary);
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.8rem;
-}
-
-.plan-summary > p {
-  margin: 0;
-  color: #62665f;
-  line-height: 1.7;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.32rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 800;
-}
-
-.status-badge .pi {
-  font-size: 0.42rem;
-}
-
-.status-badge--positive {
-  background: #edf5e8;
-  color: #476b3c;
-}
-
-.status-badge--warning {
-  background: #fff5da;
-  color: #7a5b12;
-}
-
-.status-badge--danger {
-  background: #fff0ec;
-  color: #8b3d2d;
-}
-
-.status-badge--neutral {
-  background: #eef0eb;
-  color: #5f655e;
-}
-
-.billing-details {
-  border-block: 1px solid rgba(47, 79, 79, 0.1);
-}
-
-.billing-details > div:first-child {
-  border-top: 0;
-}
-
-.admin-access-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  margin: 1rem 0 0;
-  padding: 0.8rem;
-  border-radius: 8px;
-  background: rgba(138, 154, 91, 0.1);
-  color: #596050;
-  font-size: 0.75rem;
-  line-height: 1.55;
-}
-
-.admin-access-note i {
-  color: var(--funkollection-secondary);
-}
-
-.billing-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.8rem 1rem;
-  padding-top: 1.25rem;
-}
-
-.billing-actions p {
-  flex: 1 1 16rem;
-  margin: 0;
-  color: #777b74;
-  font-size: 0.7rem;
-  line-height: 1.5;
 }
 
 .primary-button,
@@ -827,17 +538,6 @@ button:disabled {
 .setting-title strong {
   color: var(--funkollection-primary);
   font-family: 'Playfair Display', Georgia, serif;
-}
-
-.premium-feature-label {
-  padding: 0.25rem 0.45rem;
-  border-radius: 999px;
-  background: rgba(138, 154, 91, 0.14);
-  color: #64723d;
-  font-size: 0.58rem;
-  font-weight: 850;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .share-tool-row {
@@ -1030,7 +730,6 @@ button:focus-visible {
   }
 
   .detail-list > div,
-  .billing-details > div,
   .setting-row {
     grid-template-columns: 1fr;
     gap: 0.3rem;

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { getAuth } from 'firebase/auth'
-import { collection, doc, getDoc, getDocs, onSnapshot, setDoc } from 'firebase/firestore'
+import { collection, doc, getDocs, onSnapshot, setDoc } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
@@ -10,14 +10,11 @@ import Dialog from 'primevue/dialog'
 import { db } from '../firebase.js'
 import AppEmptyState from '@/components/AppEmptyState.vue'
 import AppPageHeader from '@/components/AppPageHeader.vue'
-import PaywallCard from '@/components/PaywallCard.vue'
-import { anySubscriptionGrantsPremium } from '../utils/subscriptionEntitlement.js'
 
 const auth = getAuth()
 const toast = useToast()
 const router = useRouter()
 
-const isPremium = ref(false)
 const isLoadingUserData = ref(true)
 const friends = ref([])
 const friendRequests = ref([])
@@ -39,20 +36,7 @@ onMounted(async () => {
     return
   }
 
-  const userDocRef = doc(db, 'users', currentUser.uid)
-  const userDocSnap = await getDoc(userDocRef)
-  if (userDocSnap.exists() && userDocSnap.data().isAdmin) {
-    isPremium.value = true
-  } else {
-    const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
-    const subSnap = await getDocs(subscriptionsRef)
-    isPremium.value = anySubscriptionGrantsPremium(
-      subSnap.docs.map((subscriptionDoc) => subscriptionDoc.data()),
-    )
-  }
   isLoadingUserData.value = false
-
-  if (!isPremium.value) return
 
   unsubscribers.push(
     onSnapshot(collection(db, 'users', currentUser.uid, 'friends'), (snapshot) => {
@@ -239,10 +223,6 @@ const filteredFriends = computed(() => {
         <h1>Preparing your friends</h1>
         <p>Checking your membership and social connections.</p>
       </div>
-    </section>
-
-    <section v-else-if="!isPremium" class="paywall-container">
-      <PaywallCard feature-name="Friends" />
     </section>
 
     <template v-else>

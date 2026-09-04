@@ -13,12 +13,9 @@ import {
 import { useToast } from 'primevue/usetoast'
 import { db } from '../firebase.js'
 import AppPageHeader from '@/components/AppPageHeader.vue'
-import PaywallCard from '@/components/PaywallCard.vue'
-import { anySubscriptionGrantsPremium } from '../utils/subscriptionEntitlement.js'
 
 const auth = getAuth()
 const toast = useToast()
-const isPremium = ref(false)
 const isLoadingUserData = ref(true)
 const isLoadingBadges = ref(true)
 const loadError = ref('')
@@ -173,21 +170,7 @@ onMounted(async () => {
 
   try {
     const userDocRef = doc(db, 'users', currentUser.uid)
-    const userDocSnap = await getDoc(userDocRef)
-    const userData = userDocSnap.data()
-
-    if (userData?.isAdmin) {
-      isPremium.value = true
-    } else {
-      const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
-      const subSnap = await getDocs(subscriptionsRef)
-      isPremium.value = anySubscriptionGrantsPremium(
-        subSnap.docs.map((subscriptionDoc) => subscriptionDoc.data()),
-      )
-    }
-
     isLoadingUserData.value = false
-    if (!isPremium.value) return
 
     const [funkosSnap, favoritesSnap] = await Promise.all([
       getDocs(collection(db, 'users', currentUser.uid, 'funkos')),
@@ -303,10 +286,6 @@ const badgeGroups = computed(() =>
         <h1>Preparing your achievements</h1>
         <p>Checking your collection progress.</p>
       </div>
-    </section>
-
-    <section v-else-if="!isPremium" class="paywall-container">
-      <PaywallCard feature-name="Badges" />
     </section>
 
     <template v-else>

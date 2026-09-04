@@ -2,15 +2,13 @@
 
 ## Project Overview
 Funkollection is a Vue 3 SPA for tracking Funko Pop collections.
-It uses Firebase for auth, Firestore, hosting, and cloud functions.
-Stripe handles premium subscriptions. The app is live at funkollection.com.
+It uses Firebase for auth, Firestore, hosting, and cloud functions. The app is live at funkollection.com.
 
 ---
 
 ## Tech Stack
 - **Frontend:** Vue 3 (Composition API + `<script setup>`), Vite, Vue Router, Tailwind CSS, PrimeVue, PrimeIcons
 - **Backend:** Firebase (Auth, Firestore, Hosting, Cloud Functions v2)
-- **Payments:** Stripe (via `stripe-firebase-extensions`)
 - **Chat AI:** Anthropic Claude claude-haiku-4-5 (via Firebase Function)
 - **Other:** SheetJS (CSV/Excel import), marked (markdown rendering)
 
@@ -22,11 +20,11 @@ src/
   views/
     CollectionView.vue        # thin wrapper around CollectionTable
     FavoritesView.vue
-    FunkoChatView.vue         # AI chat (premium)
-    DashboardView.vue         # premium dashboard with cards
-    FriendsView.vue           # friends management (premium)
+    FunkoChatView.vue         # AI chat
+    DashboardView.vue         # collection dashboard with cards
+    FriendsView.vue           # friends management
     FriendCollectionView.vue  # read-only friend's collection
-    BadgesView.vue            # achievement badges (premium)
+    BadgesView.vue            # achievement badges
     Account.vue
     AboutUs.vue
     PrivacyPolicy.vue
@@ -36,7 +34,6 @@ src/
     CollectionTable.vue       # main collection UI with add/edit/delete
     AddPopDialog.vue          # dialog to add a new Pop
     EditPopDialog.vue         # dialog to edit an existing Pop
-    PaywallCard.vue           # shown when non-premium hits a premium feature
     StickerBreakdownCard.vue  # dashboard card
     PopCountCard.vue          # dashboard card
     PopCategoryBreakdownCard.vue
@@ -97,7 +94,6 @@ users/{uid}/friendRequests/{requestId}     # incoming friend requests
 users/{uid}/sentRequests/{targetUid}       # outgoing friend requests
   to, sentAt
 
-customers/{uid}/subscriptions/{id}         # Stripe subscriptions (managed by extension)
 ```
 
 ---
@@ -109,53 +105,10 @@ customers/{uid}/subscriptions/{id}         # Stripe subscriptions (managed by ex
 --funkollection-background     /* warm off-white page background */
 --funkollection-text           /* dark text color */
 --funkollection-soft-white     /* nav text color */
---funkollection-gradient       /* purple→pink→yellow gradient, used for premium accents */
+--funkollection-gradient       /* purple→pink→yellow brand gradient */
 ```
 
 Always use these variables instead of hardcoded colors to stay consistent with the theme.
-
----
-
-## Premium / Auth Pattern
-Every premium view follows this pattern:
-
-```vue
-<script setup>
-const isPremium = ref(false)
-const isLoadingUserData = ref(true)
-
-onMounted(async () => {
-  const currentUser = auth.currentUser
-  const userDocRef = doc(db, 'users', currentUser.uid)
-  const userDocSnap = await getDoc(userDocRef)
-
-  if (userDocSnap.data()?.isAdmin) {
-    isPremium.value = true
-    isLoadingUserData.value = false
-    return
-  }
-
-  const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
-  onSnapshot(subscriptionsRef, (snapshot) => {
-    isPremium.value = snapshot.docs.some(d => {
-      const data = d.data()
-      return data.status === 'active' || data.status === 'trialing'
-    })
-    isLoadingUserData.value = false
-  })
-})
-</script>
-
-<template>
-  <div v-if="isLoadingUserData">Loading...</div>
-  <div v-else-if="!isPremium"><PaywallCard feature-name="Feature Name" /></div>
-  <div v-else><!-- premium content --></div>
-</template>
-```
-
-- `isAdmin: true` on the user doc bypasses all premium checks
-- Always check admin first, then subscriptions
-- Always show a loading state while checking
 
 ---
 
@@ -267,7 +220,7 @@ Key rules:
 - Use `var(--funkollection-secondary)` for buttons, badges, progress bars, active states
 - Use `var(--funkollection-primary)` for dark backgrounds (nav, headers)
 - Use `var(--funkollection-background)` for page backgrounds
-- Use `var(--funkollection-gradient)` for premium accents only
+- Use `var(--funkollection-gradient)` sparingly for brand accents
 - Border radius: 8px buttons, 12px cards, 16px larger containers, 999px pills/badges
 - Shadows: `box-shadow: 0 2px 8px rgba(0,0,0,0.06)` for cards
 - Typography: Playfair Display for headings/logo, Sora for UI/nav/buttons, DM Sans for body
@@ -284,7 +237,6 @@ Key rules:
 - Series completion tracker (needs external API)
 - Remove all console.log statements before final production launch
 - Add real contact email to Privacy Policy and Terms of Service
-- Complete Stripe account verification for payouts
 - Collection value share card (html2canvas, branded with Funkollection)
 - Duplicate Pop warning in AddPopDialog (prompt before upping quantity)
 - Collection leaderboard (top 5 by Pop count, top 5 by collection value — opt-in)

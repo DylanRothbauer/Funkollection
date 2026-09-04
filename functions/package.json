@@ -2,7 +2,7 @@
   "name": "functions",
   "description": "Cloud Functions for Firebase",
   "scripts": {
-    "test": "node --test leaderboardLogic.node.js loginStreakLogic.node.js subscriptionEntitlement.node.js",
+    "test": "node --test leaderboardLogic.node.js loginStreakLogic.node.js",
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",

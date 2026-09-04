@@ -1,8 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore'
-import { auth, db } from '../firebase.js'
 import { useUserFunkos } from '../composables/useUserFunkos'
 import PopCountCard from '../components/PopCountCard.vue'
 import PopCategoryBreakdownCard from '../components/PopCategoryBreakdownCard.vue'
@@ -11,80 +8,13 @@ import PopAcquisitionChart from '../components/PopAcquisitionChart.vue'
 import RecentAdditionsCard from '../components/RecentAdditionsCard.vue'
 import MostValuablePopsCard from '../components/MostValuablePopsCard.vue'
 import StickerBreakdownCard from '../components/StickerBreakdownCard.vue'
-import PaywallCard from '../components/PaywallCard.vue'
 import LoginStreakIndicator from '../components/LoginStreakIndicator.vue'
-import { anySubscriptionGrantsPremium } from '../utils/subscriptionEntitlement.js'
-
-const isLoadingUserData = ref(true)
-const isPremium = ref(false)
-const premiumError = ref('')
 const { user, error } = useUserFunkos()
-
-let unsubscribeSubscriptions = null
-
-onMounted(async () => {
-  const currentUser = auth.currentUser
-
-  if (!currentUser) {
-    isLoadingUserData.value = false
-    return
-  }
-
-  try {
-    const userDocRef = doc(db, 'users', currentUser.uid)
-    const docSnap = await getDoc(userDocRef)
-
-    if (docSnap.exists() && docSnap.data().isAdmin) {
-      isPremium.value = true
-      isLoadingUserData.value = false
-      return
-    }
-
-    const subscriptionsRef = collection(db, 'customers', currentUser.uid, 'subscriptions')
-    unsubscribeSubscriptions = onSnapshot(
-      subscriptionsRef,
-      (snapshot) => {
-        isPremium.value = anySubscriptionGrantsPremium(
-          snapshot.docs.map((subscriptionDoc) => subscriptionDoc.data()),
-        )
-        isLoadingUserData.value = false
-      },
-      () => {
-        premiumError.value = 'We could not verify your membership. Please refresh and try again.'
-        isLoadingUserData.value = false
-      },
-    )
-  } catch {
-    premiumError.value = 'We could not load your dashboard access. Please refresh and try again.'
-    isLoadingUserData.value = false
-  }
-})
-
-onBeforeUnmount(() => {
-  unsubscribeSubscriptions?.()
-})
 </script>
 
 <template>
   <main class="dashboard-page">
-    <section v-if="isLoadingUserData" class="dashboard-status" aria-live="polite">
-      <span class="status-spinner" aria-hidden="true"></span>
-      <div>
-        <h1>Preparing your dashboard</h1>
-        <p>Gathering the latest details from your collection.</p>
-      </div>
-    </section>
-
-    <section v-else-if="premiumError" class="dashboard-status dashboard-status--error" role="alert">
-      <span class="pi pi-exclamation-circle" aria-hidden="true"></span>
-      <div>
-        <h1>Dashboard unavailable</h1>
-        <p>{{ premiumError }}</p>
-      </div>
-    </section>
-
-    <template v-else-if="isPremium">
-      <header class="dashboard-hero">
+    <header class="dashboard-hero">
         <div class="hero-copy">
           <p class="eyebrow">Collection overview</p>
           <h1>Your Funko dashboard</h1>
@@ -117,11 +47,7 @@ onBeforeUnmount(() => {
         <MostValuablePopsCard />
         <StickerBreakdownCard class="dashboard-card--wide" />
       </section>
-    </template>
 
-    <section v-else class="paywall-container">
-      <PaywallCard feature-name="Dashboard" />
-    </section>
   </main>
 </template>
 

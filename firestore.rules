@@ -180,35 +180,5 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Firebase's Stripe extension writes with the Admin SDK, which bypasses
-    // client rules. These permissions preserve the extension's client contract.
-    match /customers/{uid} {
-      allow read: if isOwner(uid);
-
-      match /checkout_sessions/{id} {
-        allow read: if isOwner(uid);
-        allow write: if false;
-      }
-
-      match /subscriptions/{id} {
-        allow read: if isOwner(uid);
-      }
-
-      match /payments/{id} {
-        allow read: if isOwner(uid);
-      }
-    }
-
-    match /products/{id} {
-      allow read: if true;
-
-      match /prices/{id} {
-        allow read: if true;
-      }
-
-      match /tax_rates/{id} {
-        allow read: if true;
-      }
-    }
   }
 }

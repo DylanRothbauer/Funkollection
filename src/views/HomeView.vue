@@ -11,16 +11,8 @@ const isSigningIn = ref(false)
 const authError = ref('')
 const currentYear = new Date().getFullYear()
 
-const signInWithGoogle = async () => {
-  if (isSigningIn.value) return
-
-  isSigningIn.value = true
-  authError.value = ''
-
+async function syncUserProfile(user) {
   try {
-    const result = await signInWithPopup(auth, provider)
-    const user = result.user
-
     await setDoc(
       doc(db, 'users', user.uid),
       {
@@ -32,12 +24,38 @@ const signInWithGoogle = async () => {
       },
       { merge: true },
     )
+  } catch {
+    // Profile metadata is supplementary and must not turn a successful
+    // Firebase authentication into a failed sign-in experience.
+  }
+}
 
+const signInWithGoogle = async () => {
+  if (isSigningIn.value) return
+
+  isSigningIn.value = true
+  authError.value = ''
+
+  try {
+    const user = auth.currentUser || (await signInWithPopup(auth, provider)).user
+    await syncUserProfile(user)
     await router.push('/collection')
   } catch (error) {
-    if (error?.code !== 'auth/popup-closed-by-user') {
-      authError.value = 'We could not sign you in. Please try again in a moment.'
+    if (error?.code === 'auth/popup-closed-by-user' || error?.code === 'auth/cancelled-popup-request')
+      return
+    if (error?.code === 'auth/popup-blocked') {
+      authError.value = 'Your browser blocked the Google sign-in window. Allow pop-ups and try again.'
+      return
     }
+    if (error?.code === 'auth/unauthorized-domain') {
+      authError.value = 'Google sign-in is not enabled for this site address.'
+      return
+    }
+    if (error?.code === 'auth/network-request-failed') {
+      authError.value = 'Google sign-in could not reach the network. Check your connection and try again.'
+      return
+    }
+    authError.value = 'We could not sign you in. Please try again in a moment.'
   } finally {
     isSigningIn.value = false
   }
@@ -58,25 +76,21 @@ const features = [
     icon: 'pi-chart-bar',
     title: 'Collection insights',
     text: 'Understand the shape of your collection with a focused analytics dashboard.',
-    premium: true,
   },
   {
     icon: 'pi-trophy',
     title: 'Collector badges',
     text: 'Mark collection milestones and see the progress you have made over time.',
-    premium: true,
   },
   {
     icon: 'pi-users',
     title: 'Collector connections',
     text: 'Connect with friends and make collecting feel a little less solitary.',
-    premium: true,
   },
   {
     icon: 'pi-comments',
     title: 'Funko Chat',
     text: 'Ask collection-aware questions without digging through every saved item.',
-    premium: true,
   },
 ]
 
@@ -84,12 +98,12 @@ const faqs = [
   {
     question: 'What can I do with Funkollection?',
     answer:
-      'You can organize your Funko Pops, search your collection, save favorites, and keep important details attached to each item. Premium members can also access analytics, badges, friends, and Funko Chat.',
+      'You can organize your Funko Pops, search your collection, save favorites, explore analytics and badges, connect with friends, and use Funko Chat.',
   },
   {
     question: 'Is Funkollection free?',
     answer:
-      'Core collection tools are available after you sign in. Premium features are offered through a subscription, and the app shows the upgrade details before you purchase.',
+      'Yes. Funkollection is currently free to use after you sign in.',
   },
   {
     question: 'How do I sign in?',
@@ -253,7 +267,6 @@ const faqs = [
               <div class="feature-icon-wrap"><i class="pi" :class="feature.icon" aria-hidden="true"></i></div>
               <div class="feature-title-row">
                 <h3>{{ feature.title }}</h3>
-                <span v-if="feature.premium" class="premium-label">Premium</span>
               </div>
               <p>{{ feature.text }}</p>
             </article>
@@ -905,17 +918,6 @@ h3 {
   justify-content: space-between;
   gap: 0.75rem;
   margin-top: 1.15rem;
-}
-
-.premium-label {
-  padding: 0.3rem 0.45rem;
-  border-radius: 999px;
-  color: #68733e;
-  background: rgba(138, 154, 91, 0.16);
-  font-size: 0.5rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
 }
 
 .trust-section {

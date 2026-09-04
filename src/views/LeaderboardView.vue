@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import AppEmptyState from '../components/AppEmptyState.vue'
 import AppPageHeader from '../components/AppPageHeader.vue'
-import PaywallCard from '../components/PaywallCard.vue'
 import {
   getCollectionLeaderboard,
   setLeaderboardParticipation,
@@ -17,7 +16,6 @@ import {
 const isLoading = ref(true)
 const isRefreshing = ref(false)
 const isSavingPreference = ref(false)
-const isLocked = ref(false)
 const loadError = ref('')
 const preferenceError = ref('')
 const leaderboard = ref(normalizeLeaderboardResponse())
@@ -37,17 +35,12 @@ async function loadLeaderboard({ refresh = false } = {}) {
   if (refresh) isRefreshing.value = true
   else isLoading.value = true
   loadError.value = ''
-  isLocked.value = false
 
   try {
     const response = await getCollectionLeaderboard()
     leaderboard.value = normalizeLeaderboardResponse(response)
-  } catch (error) {
-    if (error?.code === 'functions/permission-denied') {
-      isLocked.value = true
-    } else {
-      loadError.value = 'Collector rankings are temporarily unavailable. Please try again.'
-    }
+  } catch {
+    loadError.value = 'Collector rankings are temporarily unavailable. Please try again.'
   } finally {
     isLoading.value = false
     isRefreshing.value = false
@@ -63,12 +56,8 @@ async function toggleParticipation() {
   try {
     await setLeaderboardParticipation(nextValue)
     await loadLeaderboard({ refresh: true })
-  } catch (error) {
-    if (error?.code === 'functions/permission-denied') {
-      isLocked.value = true
-    } else {
-      preferenceError.value = 'Your leaderboard preference could not be updated. Please try again.'
-    }
+  } catch {
+    preferenceError.value = 'Your leaderboard preference could not be updated. Please try again.'
   } finally {
     isSavingPreference.value = false
   }
@@ -90,25 +79,18 @@ onMounted(() => loadLeaderboard())
       <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
       <div>
         <h1>Preparing collector rankings</h1>
-        <p>Checking your membership and the latest leaderboard snapshot.</p>
+        <p>Loading the latest leaderboard snapshot.</p>
       </div>
-    </section>
-
-    <section v-else-if="isLocked" class="paywall-container">
-      <PaywallCard feature-name="Collection Leaderboard" />
     </section>
 
     <template v-else>
       <AppPageHeader
         eyebrow="Collector community"
         title="Collection leaderboard"
-        description="See how opted-in Premium collectors compare by the number of Pops recorded in their collections."
+        description="See how opted-in collectors compare by the number of Pops recorded in their collections."
         icon="pi-chart-bar"
       >
         <template #actions>
-          <span class="premium-badge"
-            ><i class="pi pi-sparkles" aria-hidden="true"></i>Premium</span
-          >
           <button
             type="button"
             class="refresh-button"
@@ -232,7 +214,7 @@ onMounted(() => loadLeaderboard())
             v-if="leaderboard.entries.length === 0"
             icon="pi-users"
             title="No collectors are ranked yet"
-            description="The leaderboard will begin filling as Premium collectors choose to participate."
+            description="The leaderboard will begin filling as collectors choose to participate."
           />
 
           <ol v-else class="ranking-list" aria-label="Top ten collectors">
@@ -313,7 +295,7 @@ onMounted(() => loadLeaderboard())
           <footer class="ranking-note">
             <i class="pi pi-shield" aria-hidden="true"></i>
             <p>
-              Rankings include opted-in Premium collectors with at least one saved Pop. Counts
+              Rankings include opted-in collectors with at least one saved Pop. Counts
               update after collection changes and may take a short time to appear.
             </p>
           </footer>
@@ -340,7 +322,6 @@ onMounted(() => loadLeaderboard())
   margin-inline: auto;
 }
 
-.premium-badge,
 .privacy-status,
 .you-label {
   display: inline-flex;
@@ -348,13 +329,6 @@ onMounted(() => loadLeaderboard())
   gap: 0.35rem;
   border-radius: 999px;
   font-weight: 800;
-}
-
-.premium-badge {
-  padding: 0.4rem 0.65rem;
-  background: rgba(138, 154, 91, 0.15);
-  color: var(--funkollection-primary);
-  font-size: 0.68rem;
 }
 
 .refresh-button,

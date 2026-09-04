@@ -1,25 +1,22 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore'
+import { collection, getDocs } from 'firebase/firestore'
 import { auth, db } from '../firebase.js'
 import ShareCardPreview from '../components/ShareCardPreview.vue'
 import { calculateCollectionStats, formatRecordedValue } from '../utils/collectionStats.js'
 import {
   applicationAttribution,
   DEFAULT_SHARE_OPTIONS,
-  hasShareCardAccess,
   safeCollectorName,
   SHARE_CARD_FORMAT,
 } from '../utils/shareCard.js'
-import { selectPrimarySubscription } from '../utils/subscriptionPresentation.js'
 
 const isLoading = ref(true)
 const loadError = ref('')
 const exportError = ref('')
 const exportSuccess = ref('')
 const isExporting = ref(false)
-const isEligible = ref(false)
 const stats = ref(null)
 const displayName = ref('')
 const preview = ref(null)
@@ -60,20 +57,6 @@ onMounted(async () => {
 
   displayName.value = currentUser.displayName || ''
   try {
-    const [userSnapshot, subscriptionSnapshot] = await Promise.all([
-      getDoc(doc(db, 'users', currentUser.uid)),
-      getDocs(collection(db, 'customers', currentUser.uid, 'subscriptions')),
-    ])
-    const subscription = selectPrimarySubscription(
-      subscriptionSnapshot.docs.map((subscriptionDoc) => subscriptionDoc.data()),
-    )
-    isEligible.value = hasShareCardAccess({
-      subscription,
-      isAdmin: Boolean(userSnapshot.data()?.isAdmin),
-    })
-
-    if (!isEligible.value) return
-
     const [funkosSnapshot, favoritesSnapshot, badgesSnapshot] = await Promise.all([
       getDocs(collection(db, 'users', currentUser.uid, 'funkos')),
       getDocs(collection(db, 'users', currentUser.uid, 'favorites')),
@@ -94,7 +77,7 @@ onMounted(async () => {
 })
 
 async function downloadCard() {
-  if (!isEligible.value || !stats.value?.totalPops || isExporting.value) return
+  if (!stats.value?.totalPops || isExporting.value) return
   isExporting.value = true
   exportError.value = ''
   exportSuccess.value = ''
@@ -119,7 +102,7 @@ async function downloadCard() {
           <i class="pi pi-arrow-left" aria-hidden="true"></i>
           Back to account
         </RouterLink>
-        <p class="eyebrow">Premium collection tool</p>
+        <p class="eyebrow">Collection tool</p>
         <h1>Collection stats card</h1>
         <p>Create a polished snapshot from your real collection data, ready for a social post.</p>
       </div>
@@ -142,19 +125,6 @@ async function downloadCard() {
       <div>
         <h2>Card unavailable</h2>
         <p>{{ loadError }}</p>
-      </div>
-    </section>
-
-    <section v-else-if="!isEligible" class="page-state centered-state">
-      <span class="state-icon"><i class="pi pi-lock" aria-hidden="true"></i></span>
-      <div>
-        <span class="premium-label">Premium</span>
-        <h2>This tool needs an active Premium plan</h2>
-        <p>
-          Collection cards are available while a Premium subscription or trial is active. Review
-          your plan from Account to upgrade or resolve a billing issue.
-        </p>
-        <RouterLink class="primary-button" to="/account">Review account</RouterLink>
       </div>
     </section>
 
@@ -243,7 +213,7 @@ async function downloadCard() {
           <i class="pi pi-shield" aria-hidden="true"></i>
           <p>
             Generated entirely in this browser. No image is uploaded, and the card never includes
-            your email, user ID, billing details, or a private collection link.
+            your email, user ID, or a private collection link.
           </p>
         </div>
 
@@ -343,8 +313,7 @@ h2 {
   color: #656a62;
 }
 
-.format-badge,
-.premium-label {
+.format-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;

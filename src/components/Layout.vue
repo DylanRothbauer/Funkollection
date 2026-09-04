@@ -24,7 +24,7 @@ function handleVisibilityChange() {
   }
 }
 
-const premiumLinks = [
+const communityLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: 'pi-th-large' },
   { to: '/funkochat', label: 'Funko Chat', icon: 'pi-sparkles' },
   { to: '/friends', label: 'Friends', icon: 'pi-users', badge: friendRequestCount },
@@ -157,9 +157,9 @@ function userInitial() {
           </div>
 
           <nav class="mobile-navigation" aria-label="Mobile">
-            <p class="nav-section-label">Premium</p>
+            <p class="nav-section-label">Explore</p>
             <RouterLink
-              v-for="link in premiumLinks"
+              v-for="link in communityLinks"
               :key="link.to"
               :to="link.to"
               class="nav-link"
@@ -211,8 +211,8 @@ function userInitial() {
       </RouterLink>
 
       <nav class="desktop-navigation" aria-label="Primary">
-        <p class="nav-section-label">Premium</p>
-        <RouterLink v-for="link in premiumLinks" :key="link.to" :to="link.to" class="nav-link">
+        <p class="nav-section-label">Explore</p>
+        <RouterLink v-for="link in communityLinks" :key="link.to" :to="link.to" class="nav-link">
           <i :class="['pi', link.icon]" aria-hidden="true"></i>
           <span>{{ link.label }}</span>
           <span v-if="link.badge?.value" class="nav-badge">{{ link.badge.value }}</span>

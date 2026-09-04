@@ -1,5 +1,3 @@
-import { subscriptionGrantsPremium } from './subscriptionEntitlement.js'
-
 export const SHARE_CARD_FORMAT = {
   id: 'square',
   label: 'Square social post',
@@ -13,12 +11,6 @@ export const DEFAULT_SHARE_OPTIONS = Object.freeze({
   showRecordedValue: false,
   showTopSeries: true,
 })
-
-export function hasShareCardAccess({ subscription, subscriptionStatus, isAdmin = false } = {}) {
-  if (isAdmin) return true
-  if (subscription) return subscriptionGrantsPremium(subscription)
-  return subscriptionStatus === 'active' || subscriptionStatus === 'trialing'
-}
 
 export function shareCardFilename() {
   return 'funkollection-collection-stats.png'

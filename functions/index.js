@@ -1,4 +1,3 @@
-const functions = require('firebase-functions')
 const { onCall, HttpsError } = require('firebase-functions/v2/https')
 const { onDocumentWritten } = require('firebase-functions/v2/firestore')
 const { setGlobalOptions } = require('firebase-functions/v2')
@@ -7,7 +6,6 @@ const { getFirestore } = require('firebase-admin/firestore')
 const admin = require('firebase-admin')
 const { assignCompetitionRanks, createPublicEntry } = require('./leaderboardLogic')
 const { calculateStreakTransition, utcDateKey } = require('./loginStreakLogic')
-const { selectEntitledSubscription } = require('./subscriptionEntitlement')
 
 admin.initializeApp()
 const db = getFirestore()
@@ -67,83 +65,17 @@ exports.recordDailyLogin = onCall({ cors: true }, async (request) => {
   }
 })
 
-async function hasPremiumAccess(userId) {
-  const expectedPriceId = process.env.PREMIUM_PRICE_ID
-  if (!expectedPriceId) {
-    functions.logger.error('PREMIUM_PRICE_ID is not configured.')
-    return false
-  }
-
-  const [userSnapshot, subscriptionsSnapshot] = await Promise.all([
-    db.collection('users').doc(userId).get(),
-    db.collection('customers').doc(userId).collection('subscriptions').get(),
-  ])
-
-  if (userSnapshot.data()?.isAdmin) return true
-  return Boolean(
-    selectEntitledSubscription(
-      subscriptionsSnapshot.docs.map((subscription) => subscription.data()),
-      { expectedPriceId },
-    ),
-  )
-}
-
-function requiredCheckoutConfig() {
-  const priceId = process.env.PREMIUM_PRICE_ID
-  const appUrl = process.env.APP_URL
-  if (!priceId || !appUrl) {
-    throw new HttpsError('failed-precondition', 'Premium checkout is not configured.')
-  }
-
-  let trustedAppUrl
-  try {
-    trustedAppUrl = new URL(appUrl)
-  } catch {
-    throw new HttpsError('failed-precondition', 'Premium checkout is not configured.')
-  }
-  if (!['http:', 'https:'].includes(trustedAppUrl.protocol)) {
-    throw new HttpsError('failed-precondition', 'Premium checkout is not configured.')
-  }
-  return { priceId, appUrl: trustedAppUrl.origin }
-}
-
-exports.createPremiumCheckout = onCall({ cors: true }, async (request) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'You must be signed in.')
-  }
-  if (await hasPremiumAccess(request.auth.uid)) {
-    throw new HttpsError('already-exists', 'Your Premium subscription is already active.')
-  }
-
-  const { priceId, appUrl } = requiredCheckoutConfig()
-  const checkoutRef = db
-    .collection('customers')
-    .doc(request.auth.uid)
-    .collection('checkout_sessions')
-    .doc()
-
-  await checkoutRef.set({
-    price: priceId,
-    success_url: `${appUrl}/account?checkout=success`,
-    cancel_url: `${appUrl}/account?checkout=canceled`,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  })
-
-  return { sessionId: checkoutRef.id }
-})
-
 async function rebuildLeaderboardEntry(userId) {
   const userRef = db.collection('users').doc(userId)
   const entryRef = leaderboardEntries.doc(userId)
-  const [userSnapshot, isPremium, countSnapshot] = await Promise.all([
+  const [userSnapshot, countSnapshot] = await Promise.all([
     userRef.get(),
-    hasPremiumAccess(userId),
     userRef.collection('funkos').count().get(),
   ])
   const userData = userSnapshot.data()
   const popCount = countSnapshot.data().count
 
-  if (!userData?.leaderboardOptIn || !isPremium || popCount < 1) {
+  if (!userData?.leaderboardOptIn || popCount < 1) {
     await entryRef.delete()
     return
   }
@@ -177,10 +109,6 @@ exports.setLeaderboardParticipation = onCall({ cors: true }, async (request) => 
   }
 
   const userId = request.auth.uid
-  if (enabled && !(await hasPremiumAccess(userId))) {
-    throw new HttpsError('permission-denied', 'An active Premium plan is required.')
-  }
-
   await db.collection('users').doc(userId).set({ leaderboardOptIn: enabled }, { merge: true })
   await rebuildLeaderboardEntry(userId)
   return { enabled }
@@ -192,10 +120,6 @@ exports.getCollectionLeaderboard = onCall({ cors: true }, async (request) => {
   }
 
   const userId = request.auth.uid
-  if (!(await hasPremiumAccess(userId))) {
-    throw new HttpsError('permission-denied', 'An active Premium plan is required.')
-  }
-
   const topSnapshot = await leaderboardEntries
     .orderBy('popCount', 'desc')
     .orderBy('tieSort', 'asc')
@@ -260,23 +184,12 @@ exports.onLeaderboardCollectionWritten = onDocumentWritten(
   },
 )
 
-exports.onLeaderboardSubscriptionWritten = onDocumentWritten(
-  'customers/{userId}/subscriptions/{subscriptionId}',
-  async (event) => {
-    await rebuildLeaderboardEntry(event.params.userId)
-  },
-)
-
 exports.funkoChat = onCall({ cors: true, secrets: ['ANTHROPIC_KEY'] }, async (request) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'Must be logged in.')
   }
 
   const userId = request.auth.uid
-  if (!(await hasPremiumAccess(userId))) {
-    throw new HttpsError('permission-denied', 'An active Premium plan is required.')
-  }
-
   // Check admin status and daily limit
   const userRef = db.collection('users').doc(userId)
   const userSnap = await userRef.get()

@@ -1,14 +1,10 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import { marked } from 'marked'
 import { app, auth, db } from '../firebase.js'
 import AppPageHeader from '../components/AppPageHeader.vue'
-import PaywallCard from '../components/PaywallCard.vue'
-import { anySubscriptionGrantsPremium } from '../utils/subscriptionEntitlement.js'
-
-const isPremium = ref(false)
 const isAdmin = ref(false)
 const isLoadingUserData = ref(true)
 const accessError = ref('')
@@ -35,7 +31,6 @@ const canSend = computed(
 )
 
 let resetTimer = null
-let unsubscribeSubscriptions = null
 
 marked.setOptions({ breaks: true, gfm: true })
 
@@ -110,7 +105,6 @@ onMounted(async () => {
     const userData = docSnap.data()
 
     if (userData?.isAdmin) {
-      isPremium.value = true
       isAdmin.value = true
       isLoadingUserData.value = false
       return
@@ -121,20 +115,7 @@ onMounted(async () => {
       messagesRemaining.value = Math.max(0, 20 - userData.chatUsage.count)
     }
 
-    unsubscribeSubscriptions = onSnapshot(
-      collection(db, 'customers', currentUser.uid, 'subscriptions'),
-      (snapshot) => {
-        isPremium.value = anySubscriptionGrantsPremium(
-          snapshot.docs.map((subscriptionDoc) => subscriptionDoc.data()),
-        )
-        isLoadingUserData.value = false
-      },
-      () => {
-        accessError.value =
-          'We could not verify your Funko Chat access. Please refresh and try again.'
-        isLoadingUserData.value = false
-      },
-    )
+    isLoadingUserData.value = false
   } catch {
     accessError.value = 'We could not prepare Funko Chat. Please refresh and try again.'
     isLoadingUserData.value = false
@@ -143,7 +124,6 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (resetTimer) clearInterval(resetTimer)
-  unsubscribeSubscriptions?.()
 })
 
 async function sendMessage(text) {
@@ -240,10 +220,6 @@ function handleKeydown(event) {
         <h1>Funko Chat unavailable</h1>
         <p>{{ accessError }}</p>
       </div>
-    </section>
-
-    <section v-else-if="!isPremium" class="paywall-container">
-      <PaywallCard feature-name="Funko Chat" />
     </section>
 
     <template v-else>

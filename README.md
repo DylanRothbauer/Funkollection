@@ -48,7 +48,6 @@ As a Funko Pop collector, I realized there’s a Pop for everything I love — f
 ## 🚧 In Progress
 
 - 📱 Mobile-first refinements
-- 💳 Stripe Monetization (planned)
 
 ---
 
